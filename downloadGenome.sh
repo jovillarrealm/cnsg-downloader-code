@@ -57,6 +57,24 @@ while getopts ":h:i:o:a:p:" opt; do
     case "${opt}" in
         i)
             taxon="${OPTARG}"
+            if [ -z ${taxon+x} ]; then
+                echo "Please specify a taxon to download"
+                print_help
+                exit 1
+            elif [ "$taxon" = "-a" ]; then
+                echo "Please specify a taxon to download"
+                print_help
+                exit 1
+            elif [ "$taxon" = "-o" ]; then
+                echo "Please specify a taxon to download"
+                print_help
+                exit 1
+            elif [ "$taxon" = "-p" ]; then
+                echo "Please specify a taxon to download"
+                print_help
+                exit 1
+            fi
+            
         ;;
         o)
             output_dir=$(realpath "${OPTARG}")"/"
@@ -78,12 +96,6 @@ while getopts ":h:i:o:a:p:" opt; do
         ;;
     esac
 done
-
-if [ -z "${taxon}" ]; then
-    echo "Please specify a taxon to download"
-    print_help
-    exit 1
-fi
 
 # When is this running, for traceability
 today="$(date +'%d-%m-%Y')"
