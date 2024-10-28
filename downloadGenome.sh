@@ -14,6 +14,8 @@ print_help() {
     echo ""
     echo "You should have an API key if possible"
     echo ""
+    echo "Example usage:"
+    echo ""
     echo "This script assumes unzip is installed and next to"
     echo "summary_downloader and tsv_downloader.sh and clis_download.sh"
     echo ""
@@ -27,8 +29,6 @@ if [[ $# -lt 2 ]]; then
     exit 1
 fi
 
-scripts_dir="$(dirname "$0")"
-scripts_dir="$(realpath "$scripts_dir")"/
 
 # Make a directory filled with hardlinks to
 make_hardlinks() {
@@ -47,9 +47,9 @@ make_hardlinks() {
     fi
 }
 
+
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
-
 output_dir="./"
 prefix="GCF"
 while getopts ":h:i:o:a:p:" opt; do
@@ -77,6 +77,12 @@ while getopts ":h:i:o:a:p:" opt; do
         ;;
     esac
 done
+
+if [ -z "${taxon}" ]; then
+    echo "Please specify a taxon to download"
+    print_help
+    exit 1
+fi
 
 # When is this running, for traceability
 today="$(date +'%d-%m-%Y')"
