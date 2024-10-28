@@ -2,13 +2,23 @@
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p prefered prefix]"
+    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix]"
+    echo ""
+    echo "Arguments:"
+    echo "-i <taxon>    Can be a name or NCBI Taxonomy ID"
+    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: ./]"
+    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
+    echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: 'GCF']"
+    echo "              [Options: 'GCF 'GCA' 'all']"
     echo ""
     echo ""
-    echo "This script assumes 'datasets' 'dataformat' 'tsv_downloader.sh' 'summary_downloader.sh' and 'count-fasta-rs' are in PATH"
-    echo "date format is '%d-%m-%Y'"
     echo "You should have an API key if possible"
-    echo "This script uses summary_downloader and tsv_downloader.sh and clis_download.sh"
+    echo ""
+    echo "This script assumes unzip is installed and next to"
+    echo "summary_downloader and tsv_downloader.sh and clis_download.sh"
+    echo ""
+    echo "date format is '%d-%m-%Y'"
+    echo ""
     echo ""
 }
 

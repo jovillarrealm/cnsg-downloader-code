@@ -49,6 +49,29 @@ process_filename() {
     }'
 }
 
+process_filename_redundant() {
+    awk 'BEGIN { FS="\t"; OFS="\t" } {
+    # Remove version number of Assembly Accession, or $1
+    split($1, arr, ".")
+    var1 = arr[1]
+    # Remove GCA_ GCF_
+    split(var1, nodb, "_")
+    var4 = nodb[2]
+    # Take only first 2 words in Organism Name y eso equivale a genero y especie? and replace spaces with '-'
+    gsub(/[^a-zA-Z0-9 ]/, "", $2)
+    split($2, words, " ")
+    var2 = words[1] "-" words[2]
+    # Remove non-alphanumeric characters from $3 and replace spaces with '-'
+    gsub(/ /, "-", $3)
+    gsub(/[^a-zA-Z0-9\-]/, "", $3)
+    # Remove consecutive "-" in $3
+    gsub(/-+/, "-", $3)
+    var3 = $3
+    # Output to the following variables: accession accession_name filename
+    print $1,var1, var1"_"var2"_"var3
+    }'
+}
+
 keep_GCX() {
     awk -v code="$prefix" 'BEGIN { FS="\t"; OFS="\t" }
 {
@@ -154,7 +177,7 @@ download_and_unzip() {
 # Start program
 delete_tmp=true
 num_process=3
-prefix="GCA"
+prefix="GCF"
 while getopts ":h:p:i:o:a:" opt; do
     case "${opt}" in
         i)
@@ -205,23 +228,31 @@ echo "Preferred prefix: $prefix"
 
 tmp_names="$tmp_dir""/tmp_names"
 
-#total_files=$( wc -l < "$input_file" )
-#echo -n "Remaining files: "
-#print_progress &
+if [ "$prefix" = "all" ]; then
+    tail -n +2 "$input_file" |
+    process_filename_redundant > "$tmp_names"
+    elif [ "$prefix" = "GCA" ]; then
+    tail -n +2 "$input_file" |
+    process_filename |
+    keep_GCX  > "$tmp_names"
+    elif [ "$prefix" = "GCF" ]; then
+    tail -n +2 "$input_file" |
+    process_filename |
+    keep_GCX  > "$tmp_names"
+    else
+        echo "Invalid prefix specified"
+        exit 1
+fi
 
 
 
-
-tail -n +2 "$input_file" |
-process_filename |
-keep_GCX  > "$tmp_names"
 while read -r accession accession_name filename; do
     # Start download in the background
     download_and_unzip &
-
+    
     # Update the file counter
     file_count=$((file_count + 1))
-
+    
     # Check if we have reached the batch size
     if (( file_count % batch_size == 0 )); then
         # Increment batch number and update the genomic directory
