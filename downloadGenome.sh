@@ -15,6 +15,7 @@ print_help() {
     echo "You should have an API key if possible"
     echo ""
     echo "Example usage:"
+    echo "cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -a ncbi_api_key.txt -p all"
     echo ""
     echo "This script assumes unzip is installed and next to"
     echo "summary_downloader and tsv_downloader.sh and clis_download.sh"
