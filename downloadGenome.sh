@@ -61,15 +61,15 @@ while getopts ":h:i:o:a:p:" opt; do
                 echo "Please specify a taxon to download"
                 print_help
                 exit 1
-            elif [ "$taxon" = "-a" ]; then
+                elif [ "$taxon" = "-a" ]; then
                 echo "Please specify a taxon to download"
                 print_help
                 exit 1
-            elif [ "$taxon" = "-o" ]; then
+                elif [ "$taxon" = "-o" ]; then
                 echo "Please specify a taxon to download"
                 print_help
                 exit 1
-            elif [ "$taxon" = "-p" ]; then
+                elif [ "$taxon" = "-p" ]; then
                 echo "Please specify a taxon to download"
                 print_help
                 exit 1
@@ -77,6 +77,10 @@ while getopts ":h:i:o:a:p:" opt; do
             
         ;;
         o)
+            os=$(uname)
+            if [ "$os" = "Darwin" ]; then
+                mkdir -p "$OPTARG"
+            fi
             output_dir=$(realpath "${OPTARG}")"/"
         ;;
         a)
