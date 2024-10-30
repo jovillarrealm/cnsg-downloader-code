@@ -160,8 +160,6 @@ echo "Hardlinks made"
 
 # Stats if they don´t already exist
 dircount=0
-num_process="$(nproc)"
-num_process="$((num_process / 2))"
 
 # Make the file if it does not already exist
 
