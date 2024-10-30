@@ -239,9 +239,9 @@ if [ "$prefix" = "all" ]; then
     tail -n +2 "$input_file" |
     process_filename |
     keep_GCX  > "$tmp_names"
-    else
-        echo "Invalid prefix specified"
-        exit 1
+else
+    echo "Invalid prefix specified"
+    exit 1
 fi
 
 
