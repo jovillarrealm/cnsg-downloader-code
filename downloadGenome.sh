@@ -49,6 +49,7 @@ make_hardlinks() {
 }
 
 
+os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 output_dir="./"
@@ -77,7 +78,6 @@ while getopts ":h:i:o:a:p:" opt; do
             
         ;;
         o)
-            os=$(uname)
             if [ "$os" = "Darwin" ]; then
                 mkdir -p "$OPTARG"
             fi
@@ -158,19 +158,22 @@ make_hardlinks
 echo "Hardlinks made"
 
 
-# Stats if they don´t already exist
+
 dircount=0
 
-# Make the file if it does not already exist
-
+# Stats if they don´t already exist
 while IFS= read -r -d '' dir
 do
     stats_file="$output_dir""$taxon""_""$today""_stats$dircount.csv"
+    # Make the file if it does not already exist
     if [ ! -f "$stats_file" ];then
         count-fasta-rs -c "$stats_file" -d "$dir"
         dircount=$((dircount + 1))
     else
         echo "Stats file $stats_file already exists"
+    fi
+    if [ "$os" = "Darwin" ]; then
+        count-fasta-plots "$stats_file"
     fi
 done <   <(find "$output_dir" -name "GENOMIC*" -type d -print0)
 
@@ -179,21 +182,24 @@ done <   <(find "$output_dir" -name "GENOMIC*" -type d -print0)
 
 if [[ -d "$ref_seq_dir" ]]; then
     dircount=0
-    stats_refseq_file="$ref_seq_dir""$taxon""_""$today""_refseq_stats$dircount.csv"
-    if [ ! -f "$stats_refseq_file" ];then
+    stats_file="$ref_seq_dir""$taxon""_""$today""_refseq_stats$dircount.csv"
+    if [ ! -f "$stats_file" ];then
         echo "Analyzing Refseq secuences"
         while IFS= read -r -d '' dir
         do
-            stats_refseq_file="$ref_seq_dir""$taxon""_""$today""_refseq_stats$dircount.csv"
-            if [ ! -f "$stats_refseq_file" ];then
-                count-fasta-rs -c "$stats_refseq_file" -d "$dir"
+            stats_file="$ref_seq_dir""$taxon""_""$today""_refseq_stats$dircount.csv"
+            if [ ! -f "$stats_file" ];then
+                count-fasta-rs -c "$stats_file" -d "$dir"
                 dircount=$((dircount + 1))
             else
-                echo "Stats file $stats_refseq_file already exists"
+                echo "Stats file $stats_file already exists"
             fi
         done <   <(find "$output_dir" -name "GENOMIC*" -type d -print0)
     else
         echo "RefSeq Stats file already exists"
+    fi
+    if [ "$os" = "Darwin" ]; then
+        count-fasta-plots "$stats_file"
     fi
 fi
 echo "** DONE **"
