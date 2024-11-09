@@ -1,25 +1,35 @@
 #!/bin/bash
 
+batch_size=3
+prefix="both"
+output_dir=./
+scripts_dir="$(dirname "$0")"
+scripts_dir="$(realpath "$scripts_dir")"/
+
 print_help() {
     echo ""
-    echo "Usage: $0 -i tsv/input/file/path -o path/for/dir/GENOMIC [-a path/to/api/key/file] [-p preferred prefix]"
+    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix]"
     echo ""
     echo ""
+    echo "Arguments:"
+    echo "-i            path to tsv file with datasets summary output"
+    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
+    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
+    echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
+    echo "              [Options: 'GCF 'GCA' 'all' 'both']"
+    echo ""
+    echo ""
+    echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
     echo "This script assumes 'datasets' and 'dataformat' are in PATH"
     echo "It uses unzip, awk, xargs, datasets, dataformat"
     echo ""
-    echo "prefered prefix can either be GCA (default, GenBank) of GCF (RefSeq)"
-    echo ""
-    echo "Falta reportes de errores para añadir robustez y prevenir mal uso"
-    echo "Elegir y confirmar columnas de a leer por tsv"
     echo ""
     echo ""
-    
+    echo ""
+
 }
 
-scripts_dir="$(dirname "$0")"
-scripts_dir="$(realpath "$scripts_dir")"/
 
 if [[ $# -lt 2 ]]; then
     print_help
@@ -99,6 +109,33 @@ END {
     }'
 }
 
+filter_GCX() {
+    awk -v code="$prefix" 'BEGIN { FS="\t"; OFS="\t" }
+{
+    # Only process lines where the key starts with the specified prefix
+    if ($1 ~ "^" code "_") {
+        key = $4
+        value = $1 OFS $2 OFS $3
+
+        # Check if the key already exists in the array
+        if (key in data) {
+            # If the key exists, overwrite with the current line
+            data[key] = value
+        } else {
+            # If it does not exist, add the key-value pair to the array
+            data[key] = value
+        }
+    }
+}
+
+# After processing all lines, print the results
+END {
+    for (key in data) {
+        print data[key]
+    }
+}'
+}
+
 # Function to update the genomic directory based on the current batch
 update_genomic_dir() {
     genomic_dir="${output_dir}GENOMIC${batch_number}/"
@@ -108,7 +145,6 @@ update_genomic_dir() {
     }
     echo "Created/Using directory: $genomic_dir"
 }
-
 
 download_and_unzip() {
     # Shadowing redundante sobre todo para saber mas o menos cual es el input de esta función
@@ -120,16 +156,15 @@ download_and_unzip() {
     local downloaded_path="$genomic_dir""$filename.fna"
     # Download files
     if [ -f "$downloaded_path" ]; then
-        # echo "Already in  $downloaded_path"
         return 0
     else
-        
+
         # Create directory for downloaded files
         mkdir -p "$filepath" || {
             echo "Error creating directory: $filepath"
             exit 1
         }
-        
+
         # Download genome using 'datasets' (assuming proper installation)
         if [ "$num_process" -eq 3 ]; then
             if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar; then # || { echo "Error downloading genome: $accession"; exit 1; }
@@ -142,12 +177,12 @@ download_and_unzip() {
                 return 1
             fi
         fi
-        
+
         # Unzip genome
         archive_file="ncbi_dataset/data/$accession"
         searchpath="$filepath""$archive_file"
         unzip -oq "$complete_zip_path" "$archive_file""/GC*_genomic.fna" -d "$filepath"
-        
+
         # Move to desired location
         extracted=$(find "$searchpath" -name "*" -type f)
         extension="${extracted##*.}"
@@ -177,46 +212,44 @@ download_and_unzip() {
 # Start program
 delete_tmp=true
 num_process=3
-prefix="GCF"
 while getopts ":h:p:i:o:a:" opt; do
     case "${opt}" in
-        i)
-            input_file="${OPTARG}"
+    i)
+        input_file="${OPTARG}"
         ;;
-        o)
-            output_dir=$(realpath "${OPTARG}")"/"
+    o)
+        output_dir=$(realpath "${OPTARG}")"/"
         ;;
-        a)
-            api_key_file="${OPTARG}"
-            echo "API Key en archivo: ""${api_key_file}"" se van a poder, máximo 10 descargas a la vez"
-            api_key=$(cat "${OPTARG}")
-            num_process=10
+    a)
+        api_key_file="${OPTARG}"
+        echo "API Key en archivo: ""${api_key_file}"" se van a poder, máximo 10 descargas a la vez"
+        api_key=$(cat "${OPTARG}")
+        num_process=6
         ;;
-        p)
-            prefix="${OPTARG}"
+    p)
+        prefix="${OPTARG}"
         ;;
-        h)
-            print_help
-            exit 0
+    h)
+        print_help
+        exit 0
         ;;
-        \?)
-            echo "Invalid option: -$OPTARG"
-            print_help
-            exit 1
+    \?)
+        echo "Invalid option: -$OPTARG"
+        print_help
+        exit 1
         ;;
     esac
 done
 echo "TSV: ""$input_file"
 echo "Output directory for GENOMIC: ""$output_dir"
+
+
 # Create temporary and output directories
 # Initialize counters for batches and files
-batch_size=50000
 batch_number=1
 file_count=0
-
 tmp_dir="$output_dir""tmp/"
 genomic_dir="$output_dir""GENOMIC/"
-
 
 mkdir -p "$tmp_dir" "$genomic_dir" || {
     echo "Error creating directories"
@@ -226,46 +259,49 @@ echo "Created: " "$tmp_dir"
 echo "Created: " "$genomic_dir"
 echo "Preferred prefix: $prefix"
 
+# tmp file for 
 tmp_names="$tmp_dir""/tmp_names"
 
 if [ "$prefix" = "all" ]; then
     tail -n +2 "$input_file" |
-    process_filename_redundant > "$tmp_names"
-    elif [ "$prefix" = "GCA" ]; then
+        process_filename_redundant >"$tmp_names"
+elif [ "$prefix" = "GCA" ]; then
     tail -n +2 "$input_file" |
-    process_filename |
-    keep_GCX  > "$tmp_names"
-    elif [ "$prefix" = "GCF" ]; then
+        process_filename |
+        keep_GCX >"$tmp_names"
+elif [ "$prefix" = "GCF" ]; then
     tail -n +2 "$input_file" |
-    process_filename |
-    keep_GCX  > "$tmp_names"
+        process_filename |
+        filter_GCX >"$tmp_names"
+elif [ "$prefix" = "both" ]; then
+    tail -n +2 "$input_file" |
+        process_filename |
+        keep_GCX >"$tmp_names"
 else
     echo "Invalid prefix specified"
     exit 1
 fi
 
-
-
 while read -r accession accession_name filename; do
     # Start download in the background
     download_and_unzip &
-    
+
     # Update the file counter
     file_count=$((file_count + 1))
-    
+
     # Check if we have reached the batch size
-    if (( file_count % batch_size == 0 )); then
+    if ((file_count % batch_size == 0)); then
         # Increment batch number and update the genomic directory
         batch_number=$((batch_number + 1))
         update_genomic_dir
     fi
-    
+
     # Limit the number of concurrent jobs
     if [[ $(jobs -r -p | wc -l) -ge $num_process ]]; then
         wait
         #wait -n # en bash <4.3 no existe wait -n entonces toca hacer que acabe un bache de descargas antes de continuar
     fi
-    
-done < "$tmp_names"
+
+done <"$tmp_names"
 # Wait for all background jobs to finish and probably fails on older systems when the preious wait is fullfilled because the signals get mixed
 wait

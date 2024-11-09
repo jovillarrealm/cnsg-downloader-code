@@ -1,17 +1,26 @@
 #!/bin/bash
 
+output_dir="./"
+prefix='both'
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p GCA or GCF]"
+    echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p source-db]"
     echo ""
     echo ""
+    echo "Arguments:"
+    echo "-i <taxon>    Can be a name or NCBI Taxonomy ID"
+    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
+    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
+    echo "-p            chooses between GenBank and RefSeq [Default: '$prefix']"
+    echo "              [Options: 'GCF 'GCA' 'all' 'both']"
+    echo ""
+    echo ""
+    echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
     echo "This script assumes 'datasets' and 'dataformat' are in PATH"
     echo ""
-    echo "Summaries may include duplication"
     echo ""
-    echo ""
-    
+
 }
 
 if [[ $# -lt 2 ]]; then
@@ -22,30 +31,28 @@ fi
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 
-output_dir="./"
-source_db='all'
 while getopts ":h:i:o:a:p:" opt; do
     case "${opt}" in
-        i)
-            taxon="${OPTARG}"
+    i)
+        taxon="${OPTARG}"
         ;;
-        o)
-            output_dir=$(realpath "${OPTARG}")"/"
+    o)
+        output_dir=$(realpath "${OPTARG}")"/"
         ;;
-        a)
-            api_key=$(cat "${OPTARG}")
+    a)
+        api_key=$(cat "${OPTARG}")
         ;;
-        p)
-            prefix="${OPTARG}"
+    p)
+        prefix="${OPTARG}"
         ;;
-        h)
-            print_help
-            exit 0
+    h)
+        print_help
+        exit 0
         ;;
-        \?)
-            echo "Invalid option: -$OPTARG"
-            print_help
-            exit 1
+    \?)
+        echo "Invalid option: -$OPTARG"
+        print_help
+        exit 1
         ;;
     esac
 done
@@ -55,29 +62,35 @@ echo "TSV: ""$taxon"
 echo "Download: ""$output_dir"
 
 # Create temporary and output directories
-mkdir -p  "$output_dir" || {
+mkdir -p "$output_dir" || {
     echo "Error creating output directories"
     exit 1
 }
 
 download_file="$output_dir""$taxon""_""$(date +'%d-%m-%Y')"".tsv"
 
-if [ "$prefix" = "GCA" ]; then
+if [ "$prefix" = "all" ]; then
+    source_db="all"
+elif [ "$prefix" = "GCA" ]; then
     source_db="GenBank"
-    echo "Downloading only GCA"
+elif [ "$prefix" = "GCF" ]; then
+    source_db="RefSeq"
+elif [ "$prefix" = "both" ]; then
+    source_db="all"
+else
+    echo "Invalid prefix specified"
+    exit 1
 fi
 
 if [ -z ${api_key+x} ]; then
     "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines |
-    "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent > "$download_file"
+        "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
 else
-    "$scripts_dir"datasets summary genome taxon "$taxon" --api-key "$api_key" --assembly-source "$source_db" --mag "exclude" --assembly-version "latest" --as-json-lines |
-    "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent > "$download_file"
+    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --mag "exclude" --assembly-version "latest" --as-json-lines --api-key "$api_key" |
+        "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
 fi
 
-
-
-# Fun with flags de datasets v16+:
+# Fun with flags on datasets v16+:
 #      --annotated                 Limit to annotated genomes
 #      --api-key string            Specify an NCBI API key
 #      --as-json-lines             Output results in JSON Lines format
@@ -112,8 +125,7 @@ fi
 #                                  To search multiple strings, use the flag multiple times.
 #      --version                   Print version of datasets
 
-
-# Fun with flags en dataformat v16+:
+# Fun with flags on dataformat v16+:
 #      --elide-header       Do not output header
 #      --fields strings     Comma-separated list of fields
 #      --force              Force dataformat to run without type check prompt
@@ -121,8 +133,7 @@ fi
 #      --inputfile string   Input file (default "/dev/stdin")
 #      --package string     Data package (zip archive), inputfile parameter is relative to the root path inside the archive
 
-
-# --fields tiene opciones que toca mover
+# --fields has stuff
 #Mnemonic	Name
 #accession	Assembly Accession
 #ani-best-ani-match-ani	ANI Best ANI match ANI

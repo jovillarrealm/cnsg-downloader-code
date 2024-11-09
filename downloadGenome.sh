@@ -1,26 +1,34 @@
 #!/bin/bash
 
+date_format='%d-%m-%Y'
+prefix="both"
+output_dir="./"
 print_help() {
     echo ""
     echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix]"
     echo ""
+    echo ""
     echo "Arguments:"
     echo "-i <taxon>    Can be a name or NCBI Taxonomy ID"
-    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: ./]"
+    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
     echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
-    echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: 'GCF']"
-    echo "              [Options: 'GCF 'GCA' 'all']"
+    echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
+    echo "              [Options: 'GCF 'GCA' 'all' 'both']"
     echo ""
+    echo ""
+    echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
     echo "You should have an API key if possible"
     echo ""
+    echo ""
     echo "Example usage:"
-    echo "cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -a ncbi_api_key.txt -p all"
+    echo "cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -a ./ncbi_api_key.txt -p all"
+    echo "cnsg-downloader-code/downloadGenome.sh -i 90723 -o ./Aphelenchoides -a ncbi_api_key.txt -p 'both'"
     echo ""
     echo "This script assumes unzip is installed and next to"
     echo "summary_downloader and tsv_downloader.sh and clis_download.sh"
     echo ""
-    echo "date format is '%d-%m-%Y'"
+    echo "date format is $date_format"
     echo ""
     echo ""
 }
@@ -30,79 +38,75 @@ if [[ $# -lt 2 ]]; then
     exit 1
 fi
 
-
 # Make a directory filled with hardlinks to
 make_hardlinks() {
-    ref_seq_dir="$output_dir""GENOMIC_ref_seq/"
-    mkdir -p "$ref_seq_dir"
-    find "$genomic_dir" -name "GCF_*" -exec ln -fi {} "$ref_seq_dir" \;
+    refseq_dir="$output_dir""GENOMIC_RefSeq/"
+    mkdir -p "$refseq_dir"
+    find "$genomic_dir" -name "GCF_*" -exec ln -fi {} "$refseq_dir" \;
     # Check if the directory exists
-    if [[ -d "$ref_seq_dir" ]]; then
+    if [[ -d "$refseq_dir" ]]; then
         # Check if the directory is empty
-        if [[ -z $(ls -A "$ref_seq_dir") ]]; then
+        if [[ -z $(ls -A "$refseq_dir") ]]; then
             echo "Directory is empty. No RefSeq Secuences found."
-            rm -r "$ref_seq_dir"
+            rm -r "$refseq_dir"
         fi
     else
         echo "**** ERROR: no RefSeq directory was created"
     fi
 }
 
-
 os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
-output_dir="./"
-prefix="GCF"
 while getopts ":h:i:o:a:p:" opt; do
     case "${opt}" in
-        i)
-            taxon="${OPTARG}"
-            if [ -z ${taxon+x} ]; then
-                echo "Please specify a taxon to download"
-                print_help
-                exit 1
-                elif [ "$taxon" = "-a" ]; then
-                echo "Please specify a taxon to download"
-                print_help
-                exit 1
-                elif [ "$taxon" = "-o" ]; then
-                echo "Please specify a taxon to download"
-                print_help
-                exit 1
-                elif [ "$taxon" = "-p" ]; then
-                echo "Please specify a taxon to download"
-                print_help
-                exit 1
-            fi
-            
-        ;;
-        o)
-            if [ "$os" = "Darwin" ]; then
-                mkdir -p "$OPTARG"
-            fi
-            output_dir=$(realpath "${OPTARG}")"/"
-        ;;
-        a)
-            api_key_file="${OPTARG}"
-        ;;
-        p)
-            prefix="${OPTARG}"
-        ;;
-        h)
-            print_help
-            exit 0
-        ;;
-        \?)
-            echo "Invalid option: -$OPTARG"
+    i)
+        taxon="${OPTARG}"
+        if [ -z ${taxon+x} ]; then
+            echo "Please specify a taxon to download"
             print_help
             exit 1
+        elif [ "$taxon" = "-a" ]; then
+            echo "Please specify a taxon to download"
+            print_help
+            exit 1
+        elif [ "$taxon" = "-o" ]; then
+            echo "Please specify a taxon to download"
+            print_help
+            exit 1
+        elif [ "$taxon" = "-p" ]; then
+            echo "Please specify a taxon to download"
+            print_help
+            exit 1
+        fi
+
+        ;;
+    o)
+        if [ "$os" = "Darwin" ]; then
+            mkdir -p "$OPTARG"
+        fi
+        output_dir=$(realpath "${OPTARG}")"/"
+        ;;
+    a)
+        api_key_file="${OPTARG}"
+        ;;
+    p)
+        prefix="${OPTARG}"
+        ;;
+    h)
+        print_help
+        exit 0
+        ;;
+    \?)
+        echo "Invalid option: -$OPTARG"
+        print_help
+        exit 1
         ;;
     esac
 done
 
 # When is this running, for traceability
-today="$(date +'%d-%m-%Y')"
+today="$(date +$date_format)"
 
 "$scripts_dir"clis_download.sh
 
@@ -112,16 +116,21 @@ echo "** STARTING SUMMARY DOWNLOAD **"
 start_time=$(date +%s)
 # If the summary already ran before, skip it
 download_file="$output_dir""$taxon""_""$today"".tsv"
-if [ ! -f "$download_file" ];then
+if [ ! -f "$download_file" ]; then
     if [ -z ${api_key_file+x} ]; then
-        "$scripts_dir"summary_downloader.sh -i "$taxon" -o "$output_dir"
         echo "API KEY FILE NOT SET, PLEASE GET ONE FOR FASTER AND BETTER TRANSFERS"
+        if ! "$scripts_dir"summary_downloader.sh -i "$taxon" -o "$output_dir" -p "$prefix"; then
+            exit 1
+        fi
+
     else
-        "$scripts_dir"summary_downloader.sh -i "$taxon" -o "$output_dir" -a "$api_key_file"
+        if ! "$scripts_dir"summary_downloader.sh -i "$taxon" -o "$output_dir" -p "$prefix" -a "$api_key_file"; then
+            exit 1
+        fi
     fi
-    
+
 else
-    echo "Summary for $today exists"
+    echo "Summary for $taxon on $today already exists"
 fi
 echo "** DONE **"
 end_time=$(date +%s)
@@ -136,9 +145,13 @@ echo "** STARTING DOWNLOADS **"
 start_time=$(date +%s)
 if [ -z ${api_key_file+x} ]; then
     echo "API KEY FILE NOT SET, PLEASE GET ONE FOR FASTER AND BETTER TRANSFERS"
-    "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix"
+    if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix"; then
+        exit 1
+    fi
 else
-    "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -a "$api_key_file" -p "$prefix"
+    if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -a "$api_key_file"; then
+        exit 1
+    fi
 fi
 rm -fr "$output_dir""tmp/"
 echo
@@ -148,7 +161,6 @@ elapsed_time=$((end_time - start_time))
 echo "Took $elapsed_time seconds"
 echo
 
-
 echo
 echo "** STARTING SEGREGATION AND SECUENCE ANALYSIS **"
 start_time=$(date +%s)
@@ -157,16 +169,13 @@ genomic_dir="$output_dir""GENOMIC/"
 make_hardlinks
 echo "Hardlinks made"
 
-
-
 dircount=0
 
 # Stats if they don´t already exist
-while IFS= read -r -d '' dir
-do
+while IFS= read -r -d '' dir; do
     stats_file="$output_dir""$taxon""_""$today""_stats$dircount.csv"
     # Make the file if it does not already exist
-    if [ ! -f "$stats_file" ];then
+    if [ ! -f "$stats_file" ]; then
         count-fasta-rs -c "$stats_file" -d "$dir"
         dircount=$((dircount + 1))
     else
@@ -175,26 +184,22 @@ do
     if [ "$os" = "Darwin" ]; then
         count-fasta-plots "$stats_file"
     fi
-done <   <(find "$output_dir" -name "GENOMIC*" -type d -print0)
+done < <(find "$output_dir" -name "GENOMIC*" -type d -print0)
 
-
-
-
-if [[ -d "$ref_seq_dir" ]]; then
+if [[ -d "$refseq_dir" ]]; then
     dircount=0
-    stats_file="$ref_seq_dir""$taxon""_""$today""_refseq_stats$dircount.csv"
-    if [ ! -f "$stats_file" ];then
+    stats_file="$refseq_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
+    if [ ! -f "$stats_file" ]; then
         echo "Analyzing Refseq secuences"
-        while IFS= read -r -d '' dir
-        do
-            stats_file="$ref_seq_dir""$taxon""_""$today""_refseq_stats$dircount.csv"
-            if [ ! -f "$stats_file" ];then
+        while IFS= read -r -d '' dir; do
+            stats_file="$refseq_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
+            if [ ! -f "$stats_file" ]; then
                 count-fasta-rs -c "$stats_file" -d "$dir"
                 dircount=$((dircount + 1))
             else
                 echo "Stats file $stats_file already exists"
             fi
-        done <   <(find "$output_dir" -name "GENOMIC*" -type d -print0)
+        done < <(find "$output_dir" -name "GENOMIC_RefSeq*" -type d -print0)
     else
         echo "RefSeq Stats file already exists"
     fi
@@ -208,5 +213,3 @@ elapsed_time=$((end_time - start_time))
 echo "Took $elapsed_time seconds"
 echo
 echo
-
-
