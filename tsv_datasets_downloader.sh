@@ -182,7 +182,7 @@ download_and_unzip() {
         }
 
         # Download genome with api key if there is one
-        if [ "$num_process" -eq 3 ]; then
+        if [ -z ${api_key+x} ]; then                                                                                                                   # api_key has length zero
             if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar; then # || { echo "Error downloading genome: $accession"; exit 1; }
                 echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
                 return 1
@@ -205,17 +205,14 @@ download_and_unzip() {
         if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.$extension"; then
             echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.$extension"
         else
-            # Cleanup temp files
-            if $delete_tmp; then
-                rm -r "$filepath"
-            fi
+            rm -r "$filepath"
         fi
     fi
 }
 
 setup_data() {
-    echo "TSV: ""$input_file"
-    echo "Output directory for GENOMIC: ""$output_dir"
+    echo "TSV: " "$input_file"
+    echo "Output directory for GENOMIC: " "$output_dir"
 
     # Create temporary and output directories
     # Initialize counters for batches and files
@@ -236,13 +233,14 @@ setup_data() {
     tmp_names="$tmp_dir""/tmp_names"
 
     can_we_use_wait_n
-    if [ -z ${api_key+x} ]; then
+
+    if [[ -z ${api_key+x} ]]; then
         api_key=$NCBI_API_KEY
         echo "Aquired NCBI API key from env"
+        num_process=10
     fi
 }
 
-delete_tmp=true
 num_process=3
 while getopts ":h:p:i:o:a:b:" opt; do
     case "${opt}" in
@@ -254,9 +252,8 @@ while getopts ":h:p:i:o:a:b:" opt; do
         ;;
     a)
         api_key_file="${OPTARG}"
-        echo "API Key en archivo: ""${api_key_file}"" se van a poder, máximo 10 descargas a la vez"
         api_key=$(cat "${OPTARG}")
-        num_process=6
+        num_process=10
         ;;
     p)
         prefix="${OPTARG}"
@@ -277,28 +274,38 @@ while getopts ":h:p:i:o:a:b:" opt; do
 done
 
 # START OF SCRIPT
-
 setup_data
 
-if [ "$prefix" = "all" ]; then
-    tail -n +2 "$input_file" |
-        process_filename_redundant >"$tmp_names"
-elif [ "$prefix" = "GCA" ]; then
-    tail -n +2 "$input_file" |
-        process_filename |
-        keep_GCX >"$tmp_names"
-elif [ "$prefix" = "GCF" ]; then
-    tail -n +2 "$input_file" |
-        process_filename |
-        filter_GCX >"$tmp_names"
-elif [ "$prefix" = "both" ]; then
-    tail -n +2 "$input_file" |
-        process_filename |
-        keep_GCX >"$tmp_names"
-else
-    echo "Invalid prefix specified"
-    exit 1
-fi
+# Create a named pipe (FIFO)
+pipe=$(mktemp -u)  # Create a temporary file name for the FIFO
+mkfifo "$pipe"     # Create the named pipe
+
+# Read the input file once into the named pipe
+tail -n +2 "$input_file" > "$pipe" &  # Run tail in the background
+
+# Process the data based on the prefix
+case "$prefix" in
+    "all")
+        process_filename_redundant <"$pipe" >"$tmp_names"
+        ;;
+    "GCA")
+        process_filename <"$pipe" | keep_GCX >"$tmp_names"
+        ;;
+    "GCF")
+        process_filename <"$pipe" | filter_GCX >"$tmp_names"
+        ;;
+    "both")
+        process_filename <"$pipe" | keep_GCX >"$tmp_names"
+        ;;
+    *)
+        echo "Invalid prefix specified"
+        rm -f "$pipe"
+        exit 1
+        ;;
+esac
+
+# Clean up: remove the named pipe
+rm -f "$pipe"
 
 while read -r accession accession_name filename; do
     # Start download in the background
