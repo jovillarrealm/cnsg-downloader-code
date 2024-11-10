@@ -11,14 +11,14 @@ print_help() {
     echo "Arguments:"
     echo "-i <taxon>    Can be a name or NCBI Taxonomy ID"
     echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
-    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
     echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
     echo "              [Options: 'GCF 'GCA' 'all' 'both']"
     echo ""
-    echo ""
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
-    echo "You should have an API key if possible"
+    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one. If it's not passed, this script tries to get it from env."
+    echo ""
+    echo "You should have an API key if possible."
     echo ""
     echo ""
     echo "Example usage:"
@@ -89,6 +89,7 @@ while getopts ":h:i:o:a:p:" opt; do
         ;;
     a)
         api_key_file="${OPTARG}"
+        api_key=$(cat "${OPTARG}")
         ;;
     p)
         prefix="${OPTARG}"
@@ -105,6 +106,16 @@ while getopts ":h:i:o:a:p:" opt; do
     esac
 done
 
+if [ -z ${api_key+x} ]; then
+    if [ -z ${NCBI_API_KEY+x} ]; then
+        api_key=$NCBI_API_KEY
+        echo "NCBI API key can be aquired from env"
+    else 
+        echo "NCBI API key cannot be aquired from env"
+
+    fi
+fi
+
 # When is this running, for traceability
 today="$(date +$date_format)"
 
@@ -117,7 +128,7 @@ start_time=$(date +%s)
 # If the summary already ran before, skip it
 download_file="$output_dir""$taxon""_""$today"".tsv"
 if [ ! -f "$download_file" ]; then
-    if [ -z ${api_key_file+x} ]; then
+    if [ -z ${api_key+x} ]; then
         echo "API KEY FILE NOT SET, PLEASE GET ONE FOR FASTER AND BETTER TRANSFERS"
         if ! "$scripts_dir"summary_downloader.sh -i "$taxon" -o "$output_dir" -p "$prefix"; then
             exit 1

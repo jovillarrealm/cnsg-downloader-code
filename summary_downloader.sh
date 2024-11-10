@@ -13,9 +13,10 @@ print_help() {
     echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
     echo "-p            chooses between GenBank and RefSeq [Default: '$prefix']"
     echo "              [Options: 'GCF 'GCA' 'all' 'both']"
-    echo ""
-    echo ""
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
+    echo ""
+    echo "-g            gene symbol to search with the taxon. The taxon must be at least at species level, or below."
+    echo ""
     echo ""
     echo "This script assumes 'datasets' and 'dataformat' are in PATH"
     echo ""
@@ -30,8 +31,8 @@ fi
 
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
-
-while getopts ":h:i:o:a:p:" opt; do
+download_genes=false
+while getopts ":h:i:o:a:p:g:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
@@ -45,6 +46,10 @@ while getopts ":h:i:o:a:p:" opt; do
     p)
         prefix="${OPTARG}"
         ;;
+    g)
+        gene="${OPTARG}"
+        download_genes=true
+        ;;
     h)
         print_help
         exit 0
@@ -56,6 +61,11 @@ while getopts ":h:i:o:a:p:" opt; do
         ;;
     esac
 done
+
+if [ -z ${api_key+x} ]; then
+    api_key=$NCBI_API_KEY
+    echo "Aquired NCBI API key from env"
+fi
 
 # START OF THE PROGRAM
 echo "TSV: ""$taxon"
@@ -82,12 +92,20 @@ else
     exit 1
 fi
 
-if [ -z ${api_key+x} ]; then
-    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines |
-        "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+if [ "$download_genes" = true ]; then
+    if [ -z ${api_key+x} ]; then
+        "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines
+    else
+        "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines --api-key "$api_key"
+    fi
 else
-    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --mag "exclude" --assembly-version "latest" --as-json-lines --api-key "$api_key" |
-        "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+    if [ -z ${api_key+x} ]; then
+        "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines |
+            "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+    else
+        "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --mag "exclude" --assembly-version "latest" --as-json-lines --api-key "$api_key" |
+            "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+    fi
 fi
 
 # Fun with flags on datasets v16+:
