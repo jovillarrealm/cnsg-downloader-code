@@ -236,8 +236,8 @@ setup_data() {
 
     if [[ -z ${api_key+x} ]]; then
         api_key=$NCBI_API_KEY
-        echo "Aquired NCBI API key from env"
         num_process=10
+        echo "Aquired NCBI API key from env"
     fi
 }
 
@@ -251,7 +251,6 @@ while getopts ":h:p:i:o:a:b:" opt; do
         output_dir=$(realpath "${OPTARG}")"/"
         ;;
     a)
-        api_key_file="${OPTARG}"
         api_key=$(cat "${OPTARG}")
         num_process=10
         ;;
@@ -277,31 +276,31 @@ done
 setup_data
 
 # Create a named pipe (FIFO)
-pipe=$(mktemp -u)  # Create a temporary file name for the FIFO
-mkfifo "$pipe"     # Create the named pipe
+pipe=$(mktemp -u) # Create a temporary file name for the FIFO
+mkfifo "$pipe"    # Create the named pipe
 
 # Read the input file once into the named pipe
-tail -n +2 "$input_file" > "$pipe" &  # Run tail in the background
+tail -n +2 "$input_file" >"$pipe" & # Run tail in the background
 
 # Process the data based on the prefix
 case "$prefix" in
-    "all")
-        process_filename_redundant <"$pipe" >"$tmp_names"
-        ;;
-    "GCA")
-        process_filename <"$pipe" | keep_GCX >"$tmp_names"
-        ;;
-    "GCF")
-        process_filename <"$pipe" | filter_GCX >"$tmp_names"
-        ;;
-    "both")
-        process_filename <"$pipe" | keep_GCX >"$tmp_names"
-        ;;
-    *)
-        echo "Invalid prefix specified"
-        rm -f "$pipe"
-        exit 1
-        ;;
+"all")
+    process_filename_redundant <"$pipe" >"$tmp_names"
+    ;;
+"GCA")
+    process_filename <"$pipe" | keep_GCX >"$tmp_names"
+    ;;
+"GCF")
+    process_filename <"$pipe" | filter_GCX >"$tmp_names"
+    ;;
+"both")
+    process_filename <"$pipe" | keep_GCX >"$tmp_names"
+    ;;
+*)
+    echo "Invalid prefix specified"
+    rm -f "$pipe"
+    exit 1
+    ;;
 esac
 
 # Clean up: remove the named pipe

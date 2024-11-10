@@ -72,7 +72,7 @@ os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 batch_size=50000
-while getopts ":h:i:o:a:p:" opt; do
+while getopts ":h:i:o:a:p:b:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
