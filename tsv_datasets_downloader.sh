@@ -22,7 +22,7 @@ print_help() {
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
     echo "This script assumes 'datasets' and 'dataformat' are in PATH"
-    echo "It uses unzip, awk, xargs, datasets, dataformat"
+    echo "It depends on mv, unzip, awk, xargs, datasets, dataformat, zipnote"
     echo ""
     echo ""
     echo ""
@@ -170,42 +170,66 @@ download_and_unzip() {
     local filepath="$tmp_dir""$accession_name""/"
     local complete_zip_path="$filepath""$accession_name.zip"
     local downloaded_path="$genomic_dir""$filename.fna"
+    # Flag to download genome with api key if there is one
+    api_key_flag="${api_key:+--api-key \"$api_key\"}"
     # Download files
-    if [ -f "$downloaded_path" ]; then
-        return 0
+
+    if [[ $keep_zip_files ]]; then
+        complete_zip_path="$genomic_dir""$filename.zip"
+        if [ -f "$complete_zip_path" ]; then
+            return 0
+        else
+            # Download this accession
+            # Directly download
+            if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+                echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+                return 1
+            else
+                # Find the .fna file in the archive using unzip -l
+                fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+
+                # Check if a .fna file was found
+                if [[ -z "$fna_file" ]]; then
+                    echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+                    rm "$complete_zip_path"
+                    return 1
+                fi
+                new_name=$filename.fna
+
+                zipnote -w "$complete_zip_path" <<EOF
+@ $fna_file
+@=$new_name
+EOF
+            fi
+        fi
     else
-
-        # Create directory for downloaded files
-        mkdir -p "$filepath" || {
-            echo "Error creating directory: $filepath"
-            exit 1
-        }
-
-        # Download genome with api key if there is one
-        if [ -z ${api_key+x} ]; then                                                                                                                   # api_key has length zero
-            if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar; then # || { echo "Error downloading genome: $accession"; exit 1; }
+        if [ -f "$downloaded_path" ]; then
+            return 0
+        else
+            # Create directory for downloaded files
+            mkdir -p "$filepath" || {
+                echo "Error creating directory: $filepath"
+                exit 1
+            }
+            # Download this accession
+            if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
                 echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
                 return 1
             fi
-        else
-            if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar --api-key "$api_key"; then # || { echo "Error downloading genome: $accession"; exit 1; }
-                echo "**** ERROR TO DOWNLOAD $accession , en  $complete_zip_path"
-                return 1
+
+            # Unzip genome
+            archive_file="ncbi_dataset/data/$accession"
+            searchpath="$filepath""$archive_file"
+            unzip -oq "$complete_zip_path" "$archive_file""/GC*_genomic.fna" -d "$filepath"
+
+            # Move extracted fasta to desired location
+            extracted=$(find "$searchpath" -name "*" -type f)
+            extension="${extracted##*.}"
+            if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.$extension"; then
+                echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.$extension"
+            else
+                rm -r "$filepath"
             fi
-        fi
-
-        # Unzip genome
-        archive_file="ncbi_dataset/data/$accession"
-        searchpath="$filepath""$archive_file"
-        unzip -oq "$complete_zip_path" "$archive_file""/GC*_genomic.fna" -d "$filepath"
-
-        # Move extracted fasta to desired location
-        extracted=$(find "$searchpath" -name "*" -type f)
-        extension="${extracted##*.}"
-        if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.$extension"; then
-            echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.$extension"
-        else
-            rm -r "$filepath"
         fi
     fi
 }
@@ -242,6 +266,7 @@ setup_data() {
 }
 
 num_process=3
+keep_zip_files=false
 while getopts ":h:p:i:o:a:b:" opt; do
     case "${opt}" in
     i)
@@ -264,10 +289,24 @@ while getopts ":h:p:i:o:a:b:" opt; do
         print_help
         exit 0
         ;;
-    \?)
-        echo "Invalid option: -$OPTARG"
-        print_help
-        exit 1
+    *)
+        shift $((OPTIND - 1))
+
+        # Handle long flag outside getopts
+        for arg in "$@"; do
+            case $arg in
+            --keep-zip-files=*)
+                long_flag_value="${arg#*=}"
+                keep_zip_files=true
+                ;;
+            *)
+                echo "Invalid option: -$OPTARG"
+                print_help
+                exit 1
+                ;;
+            esac
+        done
+        echo "Keep zip files: $long_flag_value"
         ;;
     esac
 done

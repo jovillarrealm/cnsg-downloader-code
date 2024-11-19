@@ -7,8 +7,7 @@ output_dir="./"
 check_api_key() {
     if [[ -z ${api_key+x} ]]; then
         if [ -z "$NCBI_API_KEY" ]; then
-            echo "WARNING: NCBI API KEY COULD NOT BE AQUIRED FROM ENV"
-            echo "PLEASE GET ONE FOR FASTER AND BETTER TRANSFERS"
+            echo "INFO: NCBI API key cannot be aquired from this environment"
         else
             api_key=$NCBI_API_KEY
             echo "INFO: An NCBI API key can be aquired from this environment"
@@ -53,6 +52,7 @@ fi
 
 # Make a directory filled with hardlinks to
 make_hardlinks() {
+    genomic_dir="$output_dir""GENOMIC$dircount/"
     refseq_dir="$output_dir""GENOMIC_RefSeq/"
     mkdir -p "$refseq_dir"
     find "$genomic_dir" -name "GCF_*" -exec ln -fi {} "$refseq_dir" \;
@@ -68,6 +68,22 @@ make_hardlinks() {
     fi
 }
 
+process_directory() {
+    local dir="$1"
+
+    if [[ ! -f "$stats_file" ]]; then
+        count-fasta-rs -c "$stats_file" -d "$dir"
+    else
+        echo "Stats file $stats_file already exists"
+    fi
+
+    dircount=$((dircount + 1))
+
+    if [[ "$os" == "Darwin" ]]; then
+        count-fasta-plots "$stats_file"
+    fi
+}
+
 os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
@@ -76,6 +92,7 @@ while getopts ":h:i:o:a:p:b:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
+        # Logic to guard against weird querys to datasets
         if [ -z ${taxon+x} ]; then
             echo "Please specify a taxon to download"
             print_help
@@ -115,14 +132,30 @@ while getopts ":h:i:o:a:p:b:" opt; do
         print_help
         exit 0
         ;;
-    \?)
-        echo "Invalid option: -$OPTARG"
-        print_help
-        exit 1
+    *)
+        shift $((OPTIND - 1))
+
+        # Handle long flag outside getopts
+        for arg in "$@"; do
+            case $arg in
+            --keep-zip-files=*)
+                long_flag_value="${arg#*=}"
+
+                keep_zip_flag="${long_flag_value:+--keep-zip-files=true}"
+                ;;
+            *)
+                echo "Invalid option: -$OPTARG"
+                print_help
+                exit 1
+                ;;
+            esac
+        done
+        echo "Keep zip files: $long_flag_value"
         ;;
     esac
 done
 
+# Shift processed options
 check_api_key
 
 # When is this running, for traceability
@@ -135,22 +168,12 @@ echo
 echo "** STARTING SUMMARY DOWNLOAD **"
 start_time=$(date +%s)
 # If the summary already ran before, skip it
+api_key_flag="${api_key_file:+-a \"$api_key_file\"}"
 download_file="$output_dir""$taxon""_""$today"".tsv"
 if [ ! -f "$download_file" ]; then
-    if [ -z ${api_key_file+x} ]; then
-        if [ -z ${api_key+x} ]; then
-            echo "WARNING: API KEY NOT SET, PLEASE GET ONE FOR FASTER AND BETTER TRANSFERS"
-        fi
-        if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix"; then
-            exit 1
-        fi
-
-    else
-        if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix" -a "$api_key_file"; then
-            exit 1
-        fi
+    if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix" $api_key_flag; then
+        exit 1
     fi
-
 else
     echo "Summary for $taxon on $today already exists"
 fi
@@ -165,17 +188,8 @@ echo
 echo
 echo "** STARTING DOWNLOADS **"
 start_time=$(date +%s)
-if [ -z ${api_key_file+x} ]; then
-    if [ -z ${api_key+x} ]; then
-        echo "API KEY NOT SET, PLEASE GET ONE FOR FASTER AND BETTER TRANSFERS"
-    fi
-    if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -b "$batch_size"; then
-        exit 1
-    fi
-else
-    if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -b "$batch_size" -a "$api_key_file"; then
-        exit 1
-    fi
+if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -b "$batch_size" $api_key_flag $keep_zip_flag; then
+    exit 1
 fi
 rm -fr "$output_dir""tmp/"
 echo
@@ -189,46 +203,26 @@ echo
 echo "** STARTING SEGREGATION AND SECUENCE ANALYSIS **"
 start_time=$(date +%s)
 # Make hardlinks
-genomic_dir="$output_dir""GENOMIC1/"
+dircount=1
 make_hardlinks
 
 dircount=1
 
-# Stats if they don´t already exist
-while IFS= read -r -d '' dir; do
-    stats_file="$output_dir""$taxon""_""$today""_stats$dircount.csv"
-    # Make the file if it does not already exist
-    if [ ! -f "$stats_file" ]; then
-        count-fasta-rs -c "$stats_file" -d "$dir"
-    else
-        echo "Stats file $stats_file already exists"
-    fi
-    dircount=$((dircount + 1))
-    if [ "$os" = "Darwin" ]; then
-        count-fasta-plots "$stats_file"
-    fi
-done < <(find "$output_dir" -name "GENOMIC*" -type d -print0)
+stats_file="$output_dir""$taxon""_""$today""_stats$dircount.csv"
+# Process main genomic directories
+find "$output_dir" -name "GENOMIC*" -type d -print0 | while IFS= read -r -d '' dir; do
+    process_directory "$dir"
+done
 
+# Process RefSeq directories
 if [[ -d "$refseq_dir" ]]; then
     dircount=1
-    stats_file="$refseq_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
-    if [ ! -f "$stats_file" ]; then
-        echo "Analyzing Refseq sequences"
-        while IFS= read -r -d '' dir; do
-            stats_file="$refseq_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
-            if [ ! -f "$stats_file" ]; then
-                count-fasta-rs -c "$stats_file" -d "$dir"
-            else
-                echo "Stats file $stats_file already exists"
-            fi
-            dircount=$((dircount + 1))
-            if [ "$os" = "Darwin" ]; then
-                count-fasta-plots "$stats_file"
-            fi
-        done < <(find "$output_dir" -name "GENOMIC_RefSeq*" -type d -print0)
-    else
-        echo "RefSeq Stats file already exists"
-    fi
+    stats_file="$output_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
+    find "$output_dir" -name "GENOMIC_RefSeq*" -type d -print0 | while IFS= read -r -d '' dir; do
+        process_directory "$dir"
+    done
+else
+    echo "RefSeq Stats file already exists"
 fi
 echo "** DONE **"
 end_time=$(date +%s)
