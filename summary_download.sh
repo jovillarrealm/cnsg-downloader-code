@@ -93,19 +93,10 @@ else
 fi
 
 if [ "$download_genes" = true ]; then
-    if [ -z ${api_key+x} ]; then
-        "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines
-    else
-        "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines --api-key "$api_key"
-    fi
+    "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines${api_key:+ --api-key "$api_key"}
 else
-    if [ -z ${api_key+x} ]; then
-        "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines |
-            "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
-    else
-        "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --mag "exclude" --assembly-version "latest" --as-json-lines --api-key "$api_key" |
-            "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
-    fi
+    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines ${api_key:+ --api-key "$api_key"} |
+    "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
 fi
 
 # Fun with flags on datasets v16+:

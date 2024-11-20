@@ -17,7 +17,7 @@ check_api_key() {
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix]"
+    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files]"
     echo ""
     echo ""
     echo "Arguments:"
@@ -32,6 +32,8 @@ print_help() {
     echo ""
     check_api_key
     echo ""
+    echo ""
+    echo "--keep-zip-files  ensures downloaded genomes are not decompressed and renames the zip and inner fna file (without recompressing it)"
     echo ""
     echo "Example usage:"
     echo "cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -a ./ncbi_api_key.txt -p all"
@@ -52,10 +54,10 @@ fi
 
 # Make a directory filled with hardlinks to
 make_hardlinks() {
-    genomic_dir="$output_dir""GENOMIC$dircount/"
-    refseq_dir="$output_dir""GENOMIC_RefSeq/"
+
+    refseq_dir="$output_dir""GENOMIC_RefSeq$dircount/"
     mkdir -p "$refseq_dir"
-    find "$genomic_dir" -name "GCF_*" -exec ln -fi {} "$refseq_dir" \;
+    find "$dir" -name "GCF_*" -exec ln -f {} "$refseq_dir" \;
     # Check if the directory exists
     if [[ -d "$refseq_dir" ]]; then
         # Check if the directory is empty
@@ -66,11 +68,10 @@ make_hardlinks() {
     else
         echo "**** ERROR: no RefSeq directory was created"
     fi
+    dircount=$((dircount + 1))
 }
 
 process_directory() {
-    local dir="$1"
-
     if [[ ! -f "$stats_file" ]]; then
         count-fasta-rs -c "$stats_file" -d "$dir"
     else
@@ -204,25 +205,28 @@ echo "** STARTING SEGREGATION AND SECUENCE ANALYSIS **"
 start_time=$(date +%s)
 # Make hardlinks
 dircount=1
-make_hardlinks
+find "$output_dir" -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
+    make_hardlinks
+done
 
 dircount=1
-
-stats_file="$output_dir""$taxon""_""$today""_stats$dircount.csv"
 # Process main genomic directories
-find "$output_dir" -name "GENOMIC*" -type d -print0 | while IFS= read -r -d '' dir; do
-    process_directory "$dir"
+find "$output_dir" -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
+    stats_file="$output_dir""$taxon""_""$today""_stats$dircount.csv"
+    process_directory
 done
 
 # Process RefSeq directories
-if [[ -d "$refseq_dir" ]]; then
-    dircount=1
-    stats_file="$output_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
-    find "$output_dir" -name "GENOMIC_RefSeq*" -type d -print0 | while IFS= read -r -d '' dir; do
-        process_directory "$dir"
-    done
-else
+
+dircount=1
+stats_file="$output_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
+if [[ -f "$stats_file" ]]; then
     echo "RefSeq Stats file already exists"
+else
+    find "$output_dir" -name "GENOMIC_RefSeq*" -type d -print0 | while IFS= read -r -d '' dir; do
+        stats_file="$output_dir""$taxon""_""$today""_RefSeq_stats$dircount.csv"
+        process_directory
+    done
 fi
 echo "** DONE **"
 end_time=$(date +%s)

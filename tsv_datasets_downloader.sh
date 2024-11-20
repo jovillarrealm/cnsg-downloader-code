@@ -21,9 +21,11 @@ print_help() {
     echo ""
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
+    echo "--keep-zip-files  ensures downloaded genomes are not decompressed and renames the zip and inner fna file (without recompressing it)"
+    echo ""
+    echo ""
     echo "This script assumes 'datasets' and 'dataformat' are in PATH"
     echo "It depends on mv, unzip, awk, xargs, datasets, dataformat, zipnote"
-    echo ""
     echo ""
     echo ""
     echo ""
@@ -83,56 +85,56 @@ process_filename_redundant() {
 
 keep_GCX() {
     awk -v code="$prefix" 'BEGIN { FS="\t"; OFS="\t" }
-{
-    # Store the relevant fields
-    key = $4
-    value = $1 OFS $2 OFS $3
-
-    # Check if the key already exists in the array
-    if (key in data) {
-        # If it exists and the current line starts with "code_", overwrite the other
-        if ($1 ~ "^" code "_") {
-            data[key] = value
-        }
-    } else {
-        # If it does not exist, add it to the array
-        data[key] = value
-    }
-}
-
-# After processing all lines, print the results
-END {
-    for (key in data) {
-        print data[key]
-    }
-    }'
-}
-
-filter_GCX() {
-    awk -v code="$prefix" 'BEGIN { FS="\t"; OFS="\t" }
-{
-    # Only process lines where the key starts with the specified prefix
-    if ($1 ~ "^" code "_") {
+    {
+        # Store the relevant fields
         key = $4
         value = $1 OFS $2 OFS $3
 
         # Check if the key already exists in the array
         if (key in data) {
-            # If the key exists, overwrite with the current line
-            data[key] = value
+            # If it exists and the current line starts with "code_", overwrite the other
+            if ($1 ~ "^" code "_") {
+                data[key] = value
+            }
         } else {
-            # If it does not exist, add the key-value pair to the array
+            # If it does not exist, add it to the array
             data[key] = value
         }
     }
+
+    # After processing all lines, print the results
+    END {
+        for (key in data) {
+            print data[key]
+        }
+    }'
 }
 
-# After processing all lines, print the results
-END {
-    for (key in data) {
-        print data[key]
+filter_GCX() {
+    awk -v code="$prefix" 'BEGIN { FS="\t"; OFS="\t" }
+    {
+        # Only process lines where the key starts with the specified prefix
+        if ($1 ~ "^" code "_") {
+            key = $4
+            value = $1 OFS $2 OFS $3
+
+            # Check if the key already exists in the array
+            if (key in data) {
+                # If the key exists, overwrite with the current line
+                data[key] = value
+            } else {
+                # If it does not exist, add the key-value pair to the array
+                data[key] = value
+            }
+        }
     }
-}'
+
+    # After processing all lines, print the results
+    END {
+        for (key in data) {
+            print data[key]
+        }
+    }'
 }
 
 # Function to update the GENOMIC directory path based on the current batch
