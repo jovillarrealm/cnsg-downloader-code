@@ -200,19 +200,6 @@ echo
 echo
 echo "** STARTING SEGREGATION AND SECUENCE ANALYSIS **"
 start_time=$(date +%s)
-
-# Make hardlinks
-dircount=1
-find "$output_dir" -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
-    refseq_dir="$output_dir"RefSeq/"GENOMIC$dircount/"
-    glob_pattern="GCF_*"
-    make_hardlinks
-    glob_pattern="GCA_*"
-    refseq_dir="$output_dir"GenBank/"GENOMIC$dircount/"
-    make_hardlinks
-    dircount=$((dircount + 1))
-done
-
 # Process main genomic directories
 dircount=1
 find "$output_dir" -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
@@ -220,34 +207,50 @@ find "$output_dir" -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS
     process_directory
 done
 
-# Process RefSeq directories
-dircount=1
-stats_file="$output_dir"RefSeq/"$taxon""_""$today""_stats$dircount.csv"
-if [[ -f "$stats_file" ]]; then
-    echo "RefSeq Stats file already exists"
+# Make hardlinks
+if [[ "$prefix" == "GCF" || "$prefix" == "GCA" ]]; then
+    return 0
 else
-    find "$output_dir"RefSeq/ -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
-        stats_file="$output_dir"RefSeq/"$taxon""_""$today""_RefSeq_stats$dircount.csv"
-        process_directory
+    dircount=1
+    find "$output_dir" -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
+        refseq_dir="$output_dir"RefSeq/"GENOMIC$dircount/"
+        glob_pattern="GCF_*"
+        make_hardlinks
+        glob_pattern="GCA_*"
+        refseq_dir="$output_dir"GenBank/"GENOMIC$dircount/"
+        make_hardlinks
+        dircount=$((dircount + 1))
     done
-fi
-if [ -z "$(ls -A "$output_dir"RefSeq/ )"  ]; then
-  rm -d "$output_dir"RefSeq/
-fi
 
-# Process GenBank directories
-dircount=1
-stats_file="$output_dir"GenBank/"$taxon""_""$today""_stats$dircount.csv"
-if [[ -f "$stats_file" ]]; then
-    echo "GenBank Stats file already exists"
-else
-    find "$output_dir"GenBank/ -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
-        stats_file="$output_dir"GenBank/"$taxon""_""$today""_GenBank_stats$dircount.csv"
-        process_directory
-    done
-fi
-if [ -z "$(ls -A "$output_dir"GenBank/ )"  ]; then
-  rm -d "$output_dir"GenBank/
+    # Process RefSeq directories
+    dircount=1
+    stats_file="$output_dir"RefSeq/"$taxon""_""$today""_stats$dircount.csv"
+    if [[ -f "$stats_file" ]]; then
+        echo "RefSeq Stats file already exists"
+    else
+        find "$output_dir"RefSeq/ -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
+            stats_file="$output_dir"RefSeq/"$taxon""_""$today""_RefSeq_stats$dircount.csv"
+            process_directory
+        done
+    fi
+    if [ -z "$(ls -A "$output_dir"RefSeq/)" ]; then
+        rm -d "$output_dir"RefSeq/
+    fi
+
+    # Process GenBank directories
+    dircount=1
+    stats_file="$output_dir"GenBank/"$taxon""_""$today""_stats$dircount.csv"
+    if [[ -f "$stats_file" ]]; then
+        echo "GenBank Stats file already exists"
+    else
+        find "$output_dir"GenBank/ -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
+            stats_file="$output_dir"GenBank/"$taxon""_""$today""_GenBank_stats$dircount.csv"
+            process_directory
+        done
+    fi
+    if [ -z "$(ls -A "$output_dir"GenBank/)" ]; then
+        rm -d "$output_dir"GenBank/
+    fi
 fi
 
 echo "** DONE **"
