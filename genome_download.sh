@@ -17,7 +17,7 @@ check_api_key() {
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files]"
+    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files=true]"
     echo ""
     echo ""
     echo "Arguments:"
@@ -61,7 +61,6 @@ make_hardlinks() {
     if [[ -d "$refseq_dir" ]]; then
         # Check if the directory is empty
         if [[ -z $(ls -A "$refseq_dir") ]]; then
-            echo "No RefSeq Sequences found."
             rm -r "$refseq_dir"
         fi
     else
@@ -141,6 +140,11 @@ while getopts ":h:i:o:a:p:b:" opt; do
 
                 keep_zip_flag="${long_flag_value:+--keep-zip-files=true}"
                 ;;
+            --convert-gzip-files=*)
+                long_flag_value="${arg#*=}"
+
+                convert_gzip_flag="${long_flag_value:+--convert-gzip-files=true}"
+                ;;
             *)
                 echo "Invalid option: -$OPTARG"
                 print_help
@@ -186,7 +190,7 @@ echo
 echo
 echo "** STARTING DOWNLOADS **"
 start_time=$(date +%s)
-if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -b "$batch_size" $api_key_flag $keep_zip_flag; then
+if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -b "$batch_size" $api_key_flag $keep_zip_flag $convert_gzip_flag; then
     exit 1
 fi
 rm -fr "$output_dir""tmp/"

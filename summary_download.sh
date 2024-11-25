@@ -95,7 +95,7 @@ fi
 if [ "$download_genes" = true ]; then
     "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines${api_key:+ --api-key "$api_key"}
 else
-    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines ${api_key:+ --api-key "$api_key"} |
+    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines --limit 100${api_key:+ --api-key "$api_key"} |
     "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
 fi
 

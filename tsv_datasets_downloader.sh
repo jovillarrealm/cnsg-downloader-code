@@ -8,7 +8,7 @@ scripts_dir="$(realpath "$scripts_dir")"/
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix]"
+    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix] [--keep-zip-files=true]"
     echo ""
     echo ""
     echo "Arguments:"
@@ -21,7 +21,7 @@ print_help() {
     echo ""
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
-    echo "--keep-zip-files  ensures downloaded genomes are not decompressed and renames the zip and inner fna file (without recompressing it)"
+    echo "--keep-zip-files=true  ensures downloaded genomes are not decompressed after download, also it renames the inner fna file (without recompressing it)"
     echo ""
     echo ""
     echo "This script assumes 'datasets' and 'dataformat' are in PATH"
@@ -170,68 +170,109 @@ download_and_unzip() {
     local accession_name="$accession_name"
     local filename="$filename"
     local filepath="$tmp_dir""$accession_name""/"
-    local complete_zip_path="$filepath""$accession_name.zip"
+    local complete_zip_path="$filepath""$filename.zip"
     local downloaded_path="$genomic_dir""$filename.fna"
+
     # Flag to download genome with api key if there is one
     api_key_flag="${api_key:+--api-key \"$api_key\"}"
     # Download files
 
-    if [[ $keep_zip_files ]]; then
-        complete_zip_path="$genomic_dir""$filename.zip"
-        if [ -f "$complete_zip_path" ]; then
+    if [[ $keep_zip_files = "true" ]]; then
+        downloaded_path="$genomic_dir""$filename.zip"
+        if [ -f "$downloaded_path" ]; then
             return 0
+        fi
+        # Create directory for downloaded files
+        mkdir -p "$filepath" || {
+            echo "Error creating directory: $filepath"
+            exit 1
+        }
+        # Download this accession
+        # Directly download
+        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+            echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+            return 1
         else
-            # Download this accession
-            # Directly download
-            if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+            # Find the .fna file in the archive using unzip -l
+            fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+
+            # Check if a .fna file was found
+            if [[ -z "$fna_file" ]]; then
                 echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+                rm "$complete_zip_path"
                 return 1
-            else
-                # Find the .fna file in the archive using unzip -l
-                fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+            fi
+            new_name=$filename.fna
 
-                # Check if a .fna file was found
-                if [[ -z "$fna_file" ]]; then
-                    echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
-                    rm "$complete_zip_path"
-                    return 1
-                fi
-                new_name=$filename.fna
-
-                zipnote -w "$complete_zip_path" <<EOF
+            zipnote -w "$complete_zip_path" <<EOF
 @ $fna_file
 @=$new_name
 EOF
-            fi
-        fi
-    else
-        if [ -f "$downloaded_path" ]; then
-            return 0
-        else
-            # Create directory for downloaded files
-            mkdir -p "$filepath" || {
-                echo "Error creating directory: $filepath"
-                exit 1
-            }
-            # Download this accession
-            if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
-                echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
-                return 1
-            fi
 
-            # Unzip genome
-            archive_file="ncbi_dataset/data/$accession"
-            searchpath="$filepath""$archive_file"
-            unzip -oq "$complete_zip_path" "$archive_file""/GC*_genomic.fna" -d "$filepath"
-
-            # Move extracted fasta to desired location
-            extracted=$(find "$searchpath" -name "*" -type f)
-            extension="${extracted##*.}"
-            if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.$extension"; then
-                echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.$extension"
+            if ! mv -n "$complete_zip_path" "$downloaded_path"; then
+                echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
             else
                 rm -r "$filepath"
             fi
+        fi
+    elif [[ $convert_gzip_files = "true" ]]; then
+        ## If we are unzipping the files
+        if [ -f "$downloaded_path" ]; then
+            return 0
+        fi
+
+        # Create directory for downloaded files
+        mkdir -p "$filepath" || {
+            echo "Error creating directory: $filepath"
+            exit 1
+        }
+        # Download this accession
+        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+            echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+            return 1
+        fi
+
+        # Unzip genome
+        archive_file="ncbi_dataset/data/$accession"
+        unzip -oq "$complete_zip_path" "$archive_file""/GC*.fna" -d "$filepath"
+
+
+        if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
+            echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
+        else
+            rm -r "$filepath"
+        fi
+        if ! gzip "$genomic_dir""$filename.fna"; then
+            echo "**** ERROR TO GZIP contents of : " "$genomic_dir""$filename.fna"
+            rm "$genomic_dir""$filename.fna"
+        fi
+    else
+        ## If we are unzipping the files
+        if [ -f "$downloaded_path" ]; then
+            return 0
+        fi
+
+        # Create directory for downloaded files
+        mkdir -p "$filepath" || {
+            echo "Error creating directory: $filepath"
+            exit 1
+        }
+        # Download this accession
+        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+            echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+            return 1
+        fi
+
+        # Unzip genome
+        archive_file="ncbi_dataset/data/$accession"
+        
+        unzip -oq "$complete_zip_path" "$archive_file""/GC*_genomic.fna" -d "$filepath"
+
+
+        if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
+            echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
+        else
+            rm -r "$filepath"
         fi
     fi
 }
@@ -242,17 +283,14 @@ setup_data() {
 
     # Create temporary and output directories
     # Initialize counters for batches and files
-    batch_number=1
+    batch_number=0
     file_count=0
     tmp_dir="$output_dir""tmp/"
-    update_genomic_dir
 
-    mkdir -p "$tmp_dir" "$genomic_dir" || {
+    mkdir -p "$tmp_dir" || {
         echo "Error creating directories"
         exit 1
     }
-    echo "Created: " "$tmp_dir"
-    echo "Created: " "$genomic_dir"
     echo "Preferred prefix: $prefix"
 
     # tmp file for
@@ -269,6 +307,7 @@ setup_data() {
 
 num_process=3
 keep_zip_files=false
+convert_gzip_files=false
 while getopts ":h:p:i:o:a:b:" opt; do
     case "${opt}" in
     i)
@@ -300,6 +339,11 @@ while getopts ":h:p:i:o:a:b:" opt; do
             --keep-zip-files=*)
                 long_flag_value="${arg#*=}"
                 keep_zip_files=true
+                ;;
+            --convert-gzip-files=*)
+                long_flag_value="${arg#*=}"
+
+                convert_gzip_files=true
                 ;;
             *)
                 echo "Invalid option: -$OPTARG"
@@ -348,18 +392,17 @@ esac
 rm -f "$pipe"
 
 while read -r accession accession_name filename; do
-    # Start download in the background
-    download_and_unzip &
-
-    # Update the file counter
-    file_count=$((file_count + 1))
-
     # Check if we have reached the batch size
     if ((file_count % batch_size == 0)); then
         # Increment batch number and update the genomic directory
         batch_number=$((batch_number + 1))
         update_genomic_dir
     fi
+    # Start download in the background
+    download_and_unzip &
+
+    # Update the file counter
+    file_count=$((file_count + 1))
 
     # Limit the number of concurrent jobs
     if [[ $(jobs -r -p | wc -l) -ge $num_process ]]; then
