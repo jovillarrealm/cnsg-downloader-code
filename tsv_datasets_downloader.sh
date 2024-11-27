@@ -157,10 +157,10 @@ can_we_use_wait_n() {
     # Compare the major and minor versions to check if they meet the minimum requirement
     if [[ "$major" -gt 4 ]] || { [[ "$major" -eq 4 ]] && [[ "$minor" -ge 3 ]]; }; then
         echo "Bash version $bash_version meets the minimum required version (4.3)."
-        can_use_wait_n=true
+        can_use_wait_n="true"
     else
         echo "Bash version $bash_version is too old. Minimum required version is 4.3."
-        can_use_wait_n=false
+        can_use_wait_n="false"
     fi
 }
 
@@ -406,7 +406,7 @@ while read -r accession accession_name filename; do
 
     # Limit the number of concurrent jobs
     if [[ $(jobs -r -p | wc -l) -ge $num_process ]]; then
-        if [[ $can_use_wait_n ]]; then
+        if [[ $can_use_wait_n = "true" ]]; then
             # Wait until a new job can be created
             wait -n
         else
