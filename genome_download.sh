@@ -110,9 +110,8 @@ while getopts ":h:i:o:a:p:b:" opt; do
         fi
         ;;
     o)
-        if [ "$os" = "Darwin" ]; then
-            mkdir -p "$OPTARG"
-        fi
+        mkdir -p "$OPTARG"
+
         output_dir=$(realpath "${OPTARG}")"/"
         ;;
     a)
