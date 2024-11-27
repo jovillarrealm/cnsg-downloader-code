@@ -213,7 +213,7 @@ done
 
 # Make hardlinks
 if [[ "$prefix" == "GCF" || "$prefix" == "GCA" ]]; then
-    return 0
+    true
 else
     dircount=1
     find "$output_dir" -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
