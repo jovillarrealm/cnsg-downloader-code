@@ -149,17 +149,17 @@ update_genomic_dir() {
 
 # Function to check if we can use wait -n on the current system based on the bash version
 can_we_use_wait_n() {
-    bash_version=$(bash --version | head -n 1 | awk '{print $4}')
+  
 
     # Extract major and minor version numbers
-    IFS='.' read -r major minor <<<"$bash_version"
+    IFS='.' read -r major minor <<<"$BASH_VERSION"
 
     # Compare the major and minor versions to check if they meet the minimum requirement
     if [[ "$major" -gt 4 ]] || { [[ "$major" -eq 4 ]] && [[ "$minor" -ge 3 ]]; }; then
-        echo "Bash version $bash_version meets the minimum required version (4.3)."
+        echo "Bash version $BASH_VERSION meets the minimum required version (4.3)."
         can_use_wait_n="true"
     else
-        echo "Bash version $bash_version is too old. Minimum required version is 4.3."
+        echo "Bash version $BASH_VERSION is too old. Minimum required version is 4.3."
         can_use_wait_n="false"
     fi
 }
@@ -189,6 +189,7 @@ download_and_unzip() {
         }
         # Download this accession
         # Directly download
+        # shellcheck disable=SC2086
         if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             return 1
@@ -217,6 +218,7 @@ EOF
         fi
     elif [[ $convert_gzip_files = "true" ]]; then
         ## If we are unzipping the files
+        downloaded_path="$downloaded_path".gz
         if [ -f "$downloaded_path" ]; then
             return 0
         fi
@@ -227,6 +229,7 @@ EOF
             exit 1
         }
         # Download this accession
+        # shellcheck disable=SC2086
         if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             return 1
@@ -258,6 +261,7 @@ EOF
             exit 1
         }
         # Download this accession
+        # shellcheck disable=SC2086
         if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             return 1

@@ -17,7 +17,7 @@ check_api_key() {
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files=true]"
+    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files=true] [--convert-gzip-files=true]"
     echo ""
     echo ""
     echo "Arguments:"
@@ -86,7 +86,7 @@ os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 batch_size=50000
-while getopts ":h:i:o:a:p:b:" opt; do
+while getopts ":h:i:o:a:p:b:l:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
@@ -123,6 +123,10 @@ while getopts ":h:i:o:a:p:b:" opt; do
         ;;
     b)
         batch_size="${OPTARG}"
+        ;;
+    l)
+        limit_size="${OPTARG}"
+        limit_flag="${limit_size:+-l "$limit_size"}"
         ;;
     h)
         print_help
@@ -172,7 +176,8 @@ start_time=$(date +%s)
 api_key_flag="${api_key_file:+-a \"$api_key_file\"}"
 download_file="$output_dir""$taxon""_""$today"".tsv"
 if [ ! -f "$download_file" ]; then
-    if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix" $api_key_flag; then
+    # shellcheck disable=SC2086
+    if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix" $api_key_flag $limit_flag; then
         exit 1
     fi
 else
@@ -189,6 +194,7 @@ echo
 echo
 echo "** STARTING DOWNLOADS **"
 start_time=$(date +%s)
+# shellcheck disable=SC2086
 if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -b "$batch_size" $api_key_flag $keep_zip_flag $convert_gzip_flag; then
     exit 1
 fi
@@ -216,10 +222,12 @@ if [[ "$prefix" == "GCF" || "$prefix" == "GCA" ]]; then
 else
     dircount=1
     find "$output_dir" -maxdepth 1 -name "GENOMIC[0-9]*" -type d -print0 | while IFS= read -r -d '' dir; do
+        # shellcheck disable=SC2140
         refseq_dir="$output_dir"RefSeq/"GENOMIC$dircount/"
         glob_pattern="GCF_*"
         make_hardlinks
         glob_pattern="GCA_*"
+        # shellcheck disable=SC2140
         refseq_dir="$output_dir"GenBank/"GENOMIC$dircount/"
         make_hardlinks
         dircount=$((dircount + 1))
