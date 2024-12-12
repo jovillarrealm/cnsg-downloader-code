@@ -9,8 +9,8 @@ zip_compare_dir=./zip-compare-output
 mkdir -p $gz_compare_dir $zip_compare_dir
 
 test_count_fasta_rs_vs_perl() {
-    find $target_dir -type f -name "*fna" |
-        "$extra_scripts_dir"/rs-comperl.sh
+    find $target_dir -type f -name "*fna" -print0 |
+        xargs -0 -I {} "$extra_scripts_dir"/rs-comperl.sh {}
 }
 
 test_count_fasta_rs_gzip_files() {

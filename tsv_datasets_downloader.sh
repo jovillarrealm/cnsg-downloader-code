@@ -152,7 +152,7 @@ can_we_use_wait_n() {
   
 
     # Extract major and minor version numbers
-    IFS='.' read -r major minor <<<"$BASH_VERSION"
+    IFS='.' read -r major minor patch <<<"$BASH_VERSION"
 
     # Compare the major and minor versions to check if they meet the minimum requirement
     if [[ "$major" -gt 4 ]] || { [[ "$major" -eq 4 ]] && [[ "$minor" -ge 3 ]]; }; then
