@@ -1,6 +1,6 @@
 #!/bin/bash
 
-batch_size=50000
+batch_size=50001
 prefix="both"
 output_dir=./
 scripts_dir="$(dirname "$0")"
