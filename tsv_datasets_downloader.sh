@@ -137,6 +137,10 @@ filter_GCX() {
     }'
 }
 
+filter_out_GCX() {
+    awk -v code="$prefix" '!($0 ~ "^"prefix)'
+}
+
 # Function to update the GENOMIC directory path based on the current batch
 update_genomic_dir() {
     genomic_dir="${output_dir}GENOMIC${batch_number}/"
@@ -149,10 +153,9 @@ update_genomic_dir() {
 
 # Function to check if we can use wait -n on the current system based on the bash version
 can_we_use_wait_n() {
-  
 
     # Extract major and minor version numbers
-    IFS='.' read -r major minor patch <<<"$BASH_VERSION"
+    IFS='.' read -r major minor _patch <<<"$BASH_VERSION"
 
     # Compare the major and minor versions to check if they meet the minimum requirement
     if [[ "$major" -gt 4 ]] || { [[ "$major" -eq 4 ]] && [[ "$minor" -ge 3 ]]; }; then
@@ -190,7 +193,7 @@ download_and_unzip() {
         # Download this accession
         # Directly download
         # shellcheck disable=SC2086
-        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome${annotate:+,gff3} --no-progressbar $api_key_flag; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             return 1
         else
@@ -230,7 +233,7 @@ EOF
         }
         # Download this accession
         # shellcheck disable=SC2086
-        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome${annotate:+,gff3} --no-progressbar $api_key_flag; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             return 1
         fi
@@ -238,7 +241,6 @@ EOF
         # Unzip genome
         archive_file="ncbi_dataset/data/$accession"
         unzip -oq "$complete_zip_path" "$archive_file""/GC*.fna" -d "$filepath"
-
 
         if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
             echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
@@ -262,20 +264,23 @@ EOF
         }
         # Download this accession
         # shellcheck disable=SC2086
-        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome --no-progressbar $api_key_flag; then
+        if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome${annotate:+,gff3} --no-progressbar $api_key_flag; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             return 1
         fi
 
         # Unzip genome
         archive_file="ncbi_dataset/data/$accession"
-        
+
         unzip -oq "$complete_zip_path" "$archive_file""/GC*_genomic.fna" -d "$filepath"
+        unzip -oq "$complete_zip_path" "$archive_file""/g*.gff" -d "$filepath"
 
-
-        if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
+        if ! find "$filepath""$archive_file" -type f -name "*fna" -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
             echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
         else
+            if [[ $annotate = "true" ]]; then
+                find "$filepath""$archive_file" -type f -name "*gff" -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.gff"
+            fi
             rm -r "$filepath"
         fi
     fi
@@ -344,6 +349,10 @@ while getopts ":h:p:i:o:a:b:" opt; do
                 long_flag_value="${arg#*=}"
                 keep_zip_files=true
                 ;;
+            --annotate=*)
+                long_flag_value="${arg#*=}"
+                annotate=true
+                ;;
             --convert-gzip-files=*)
                 long_flag_value="${arg#*=}"
 
@@ -380,7 +389,9 @@ case "$prefix" in
     process_filename <"$pipe" | keep_GCX >"$tmp_names"
     ;;
 "GCF")
-    process_filename <"$pipe" | filter_GCX >"$tmp_names"
+    prefix="GCA"
+    process_filename <"$pipe" | filter_out_GCX >"$tmp_names"
+    prefix="GCF"
     ;;
 "both")
     process_filename <"$pipe" | keep_GCX >"$tmp_names"

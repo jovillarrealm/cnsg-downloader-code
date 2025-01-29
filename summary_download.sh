@@ -32,7 +32,7 @@ fi
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 download_genes=false
-while getopts ":h:i:o:a:p:g:l:" opt; do
+while getopts ":h:i:o:a:p:g:l:r:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
@@ -52,6 +52,9 @@ while getopts ":h:i:o:a:p:g:l:" opt; do
     g)
         gene="${OPTARG}"
         download_genes=true
+        ;;
+    r)
+        reference="${OPTARG}"
         ;;
     h)
         print_help
@@ -98,7 +101,7 @@ fi
 if [ "$download_genes" = true ]; then
     "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines ${api_key:+--api-key "$api_key"}
 else
-    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines ${api_key:+ --api-key "$api_key"} ${limit_size:+ --limit "$limit_size"}|
+    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines ${api_key:+ --api-key "$api_key"} ${limit_size:+ --limit "$limit_size"} ${reference:+ --reference}|
     "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
 fi
 

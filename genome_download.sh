@@ -29,6 +29,7 @@ print_help() {
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
     echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one. If it's not passed, this script tries to get it from env."
+    echo "-r            specify with any string to download only reference genomes"
     echo ""
     check_api_key
     echo ""
@@ -86,7 +87,7 @@ os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 batch_size=50000
-while getopts ":h:i:o:a:p:b:l:" opt; do
+while getopts ":h:i:o:a:p:b:l:r:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
@@ -123,6 +124,9 @@ while getopts ":h:i:o:a:p:b:l:" opt; do
         ;;
     b)
         batch_size="${OPTARG}"
+        ;;
+    r)
+        reference="${OPTARG}"
         ;;
     l)
         limit_size="${OPTARG}"
@@ -177,7 +181,7 @@ api_key_flag="${api_key_file:+-a \"$api_key_file\"}"
 download_file="$output_dir""$taxon""_""$today"".tsv"
 if [ ! -f "$download_file" ]; then
     # shellcheck disable=SC2086
-    if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix" $api_key_flag $limit_flag; then
+    if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix" $api_key_flag $limit_flag${reference:+ -r true}; then
         exit 1
     fi
 else
