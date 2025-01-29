@@ -152,6 +152,10 @@ while getopts ":h:i:o:a:p:b:l:r:" opt; do
 
                 convert_gzip_flag="${long_flag_value:+--convert-gzip-files=true}"
                 ;;
+            --annotate=*)
+                long_flag_value="${arg#*=}"
+                annotate=true
+                ;;
             *)
                 echo "Invalid option: -$OPTARG"
                 print_help
@@ -199,7 +203,15 @@ echo
 echo "** STARTING DOWNLOADS **"
 start_time=$(date +%s)
 # shellcheck disable=SC2086
-if ! "$scripts_dir"tsv_datasets_downloader.sh -i "$download_file" -o "$output_dir" -p "$prefix" -b "$batch_size" $api_key_flag $keep_zip_flag $convert_gzip_flag; then
+if ! "$scripts_dir"tsv_datasets_downloader.sh \
+    -i "$download_file" \
+    -o "$output_dir" \
+    -p "$prefix" \
+    -b "$batch_size" \
+    $api_key_flag \
+    $keep_zip_flag \
+    $convert_gzip_flag \
+    ${annotate:+--annotate=true}; then
     exit 1
 fi
 rm -fr "$output_dir""tmp/"

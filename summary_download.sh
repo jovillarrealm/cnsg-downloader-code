@@ -68,14 +68,11 @@ while getopts ":h:i:o:a:p:g:l:r:" opt; do
     esac
 done
 
-if [ -z ${api_key+x} ]; then
-    api_key=$NCBI_API_KEY
-    echo "Aquired NCBI API key from env"
-fi
-
 # START OF THE PROGRAM
 echo "TSV: ""$taxon"
 echo "Download: ""$output_dir"
+
+: "${api_key:=$NCBI_API_KEY}"
 
 # Create temporary and output directories
 mkdir -p "$output_dir" || {
@@ -101,8 +98,16 @@ fi
 if [ "$download_genes" = true ]; then
     "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines ${api_key:+--api-key "$api_key"}
 else
-    "$scripts_dir"datasets summary genome taxon "$taxon" --assembly-source "$source_db" --assembly-version "latest" --mag "exclude" --as-json-lines ${api_key:+ --api-key "$api_key"} ${limit_size:+ --limit "$limit_size"} ${reference:+ --reference}|
-    "$scripts_dir"dataformat tsv genome --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+    "$scripts_dir"datasets summary genome taxon "$taxon" \
+        --assembly-source "$source_db" \
+        --assembly-version "latest" \
+        --mag "exclude" \
+        --as-json-lines \
+        ${api_key:+ --api-key "$api_key"} \
+        ${limit_size:+ --limit "$limit_size"} \
+        ${reference:+ --reference} |
+        "$scripts_dir"dataformat tsv genome \
+            --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
 fi
 
 # Fun with flags on datasets v16+:
