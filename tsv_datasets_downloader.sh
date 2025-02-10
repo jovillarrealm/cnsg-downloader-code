@@ -5,6 +5,7 @@ prefix="both"
 output_dir=./
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
+utils_dir="$scripts_dir"utils/
 
 print_help() {
     echo ""
@@ -92,13 +93,13 @@ done
 
 # START OF SCRIPT
 # shellcheck source=utils/awk_programs.sh
-eval "$(cat "$scripts_dir"utils/awk_programs.sh)"
+eval "$(cat "$utils_dir"awk_programs.sh)"
 
 # shellcheck source=utils/tsv_downloader.sh
-eval "$(cat "$scripts_dir"utils/tsv_downloader.sh)"
+eval "$(cat "$utils_dir"tsv_downloader.sh)"
 
 # shellcheck source=utils/download_unzip.sh
-eval "$(cat "$scripts_dir"utils/download_unzip.sh)"
+eval "$(cat "$utils_dir"download_unzip.sh)"
 
 setup_data
 # can_we_use_wait_n is set

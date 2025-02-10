@@ -33,6 +33,7 @@ fi
 
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
+utils_dir="$scripts_dir"utils/
 download_genes=false
 while getopts ":h:i:o:a:p:g:l:r:" opt; do
     case "${opt}" in
@@ -98,9 +99,9 @@ else
 fi
 
 if [ "$download_genes" = true ]; then
-    "$scripts_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines ${api_key:+--api-key "$api_key"}
+    "$utils_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines ${api_key:+--api-key "$api_key"}
 else
-    "$scripts_dir"datasets summary genome taxon "$taxon" \
+    "$utils_dir"datasets summary genome taxon "$taxon" \
         --assembly-source "$source_db" \
         --assembly-version "latest" \
         --mag "exclude" \

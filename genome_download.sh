@@ -91,6 +91,7 @@ process_directory() {
 os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
+utils_dir="$scripts_dir"utils/
 batch_size=50000
 annotate=
 while getopts ":h:i:o:a:p:b:l:r:" opt; do
@@ -179,7 +180,7 @@ check_api_key
 # When is this running, for traceability
 today="$(date +$date_format)"
 
-"$scripts_dir"clis_download.sh
+"$utils_dir"clis_download.sh
 
 echo
 echo
