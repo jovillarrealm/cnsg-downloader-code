@@ -25,10 +25,10 @@ test_count_fasta_rs_gzip_files() {
 
 test_count_fasta_rs_zip_files() {
     echo $target_dir
-    find "$target_dir" -type f -name "*zip" -exec count-fasta-rs {} \; >>$zip_compare_dir/zip.out
-    find "$target_dir" -type f -name "*zip" -print0 | xargs -0 -I {} unzip -d "$target_dir" {} "*.fna"
-    find "$target_dir" -type f -name "*fna" -exec count-fasta-rs {} \; >>$zip_compare_dir/plain.out
+    find "$target_dir" -maxdepth 2 -type f -name "*zip" -exec count-fasta-rs {} \; >> $zip_compare_dir/zip.out
     sort -r $zip_compare_dir/zip.out > $zip_compare_dir/zip_s.out
+    find "$target_dir" -type f -name "*zip" -print0 | xargs -0 -I {} unzip -q -o -d "$target_dir" {} "*.fna"
+    find "$target_dir" -type f -name "*fna" -exec count-fasta-rs {} \; >>$zip_compare_dir/plain.out
     sort -r $zip_compare_dir/plain.out > $zip_compare_dir/plain_s.out
     diff -w $zip_compare_dir/zip_s.out $zip_compare_dir/plain_s.out >>$zip_compare_dir/diff_file
 }

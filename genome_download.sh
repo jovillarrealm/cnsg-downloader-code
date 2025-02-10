@@ -17,7 +17,7 @@ check_api_key() {
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files=true] [--convert-gzip-files=true]"
+    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files=true] [--convert-gzip-files=true] [--annotate=true]"
     echo ""
     echo ""
     echo "Arguments:"
@@ -30,11 +30,16 @@ print_help() {
     echo ""
     echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one. If it's not passed, this script tries to get it from env."
     echo "-r            specify with any string to download only reference genomes"
+    echo "-l <Number>   limit the summary to the first <Number> of genomes"
     echo ""
     check_api_key
     echo ""
+    echo "--keep-zip-files=true  ensures downloaded genomes are not decompressed after download, also it renames the inner fna file (without recompressing it)"
     echo ""
-    echo "--keep-zip-files  ensures downloaded genomes are not decompressed and renames the zip and inner fna file (without recompressing it)"
+    echo "--convert-gzip-files  ensures downloaded genomes are not recompressed after download into a gz file"
+    echo ""
+    echo "--annotate=true   adds gff annotations"
+    echo ""
     echo ""
     echo "Example usage:"
     echo "cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -a ./ncbi_api_key.txt -p all"
@@ -87,6 +92,7 @@ os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 batch_size=50000
+annotate=
 while getopts ":h:i:o:a:p:b:l:r:" opt; do
     case "${opt}" in
     i)
@@ -163,7 +169,6 @@ while getopts ":h:i:o:a:p:b:l:r:" opt; do
                 ;;
             esac
         done
-        echo "Keep zip files: $long_flag_value"
         ;;
     esac
 done
@@ -185,7 +190,13 @@ api_key_flag="${api_key_file:+-a \"$api_key_file\"}"
 download_file="$output_dir""$taxon""_""$today"".tsv"
 if [ ! -f "$download_file" ]; then
     # shellcheck disable=SC2086
-    if ! "$scripts_dir"summary_download.sh -i "$taxon" -o "$output_dir" -p "$prefix" $api_key_flag $limit_flag${reference:+ -r true}; then
+    if ! "$scripts_dir"summary_download.sh \
+        -i "$taxon" \
+        -o "$output_dir" \
+        -p "$prefix" \
+        $api_key_flag \
+        $limit_flag \
+        ${reference:+-r true}; then
         exit 1
     fi
 else
