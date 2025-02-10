@@ -20,7 +20,17 @@ download scripts for [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih
       utils-->dataformat;
 ```
 
+
+
 ## Usage 
+
+First, a shorthand for giving +x permissions.
+
+  cd cnsg-downloader-code
+  chmod +x *
+  cd utils
+  chmod +x *
+
 Output for `./genome_download.sh`
 
 ```

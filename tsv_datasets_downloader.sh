@@ -47,6 +47,11 @@ print_help() {
     echo ""
 }
 
+if [[ $# -lt 2 ]]; then
+    print_help
+    exit 1
+fi
+
 num_process=3
 keep_zip_files=false
 convert_gzip_files=false
@@ -103,10 +108,7 @@ while getopts ":h:p:i:o:a:b:" opt; do
     esac
 done
 
-if [[ $# -lt 2 ]]; then
-    print_help
-    exit 1
-fi
+
 
 # START OF SCRIPT
 # shellcheck source=utils/awk_programs.sh
