@@ -1,5 +1,7 @@
 # cnsg-downloader-code
 
+download scripts for [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/).
+
 ## Hierarchy
 ```mermaid
   graph TD;
@@ -18,9 +20,7 @@
       utils-->dataformat;
 ```
 
-download scripts for [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/).
-
-
+## Usage 
 Output for `./genome_download.sh`
 
 ```
@@ -104,3 +104,13 @@ Arguments:
 This script assumes 'datasets' and 'dataformat' are in PATH
 It depends on mv, unzip, awk, xargs, datasets, dataformat, zipnote
 ```
+
+## NCBI_API_KEY
+
+Yeah, I rotated the API KEY.
+
+Get your own like this.
+
+https://github.com/user-attachments/assets/58a8a205-8726-4a35-a8d8-db75650525d2
+
+
