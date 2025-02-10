@@ -100,5 +100,5 @@ filter_GCX() {
 }
 
 filter_out_GCX() {
-    awk -v code="$prefix" '!($0 ~ "^"prefix)'
+    awk -v code="$prefix" 'BEGIN { OFS="\t" } !($0 ~ "^"code) { print $1, $2, $3 }'
 }

@@ -4,7 +4,7 @@ output_dir="./"
 prefix='both'
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p source-db]"
+    echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p source-db] [-r true]"
     echo ""
     echo ""
     echo "Arguments:"
@@ -14,6 +14,8 @@ print_help() {
     echo "-p            chooses between GenBank and RefSeq [Default: '$prefix']"
     echo "              [Options: 'GCF 'GCA' 'all' 'both']"
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
+    echo "-r            chooses to download only reference genomes"
+    echo "-l <Number>   limit the summary to the first <Number> of genomes"
     echo ""
     echo "-g            gene symbol to search with the taxon. The taxon must be at least at species level, or below."
     echo ""

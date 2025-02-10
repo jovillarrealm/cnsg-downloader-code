@@ -8,7 +8,7 @@ scripts_dir="$(realpath "$scripts_dir")"/
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix] [--keep-zip-files=true]"
+    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix] [--keep-zip-files=true] [--annotate=true]"
     echo ""
     echo ""
     echo "Arguments:"
@@ -22,6 +22,8 @@ print_help() {
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
     echo "--keep-zip-files=true  ensures downloaded genomes are not decompressed after download, also it renames the inner fna file (without recompressing it)"
+    echo ""
+    echo "--convert-gzip-files  ensures downloaded genomes are not recompressed after download into a gz file"
     echo ""
     echo "--annotate=true   adds gff annotations"
     echo ""
@@ -84,7 +86,6 @@ while getopts ":h:p:i:o:a:b:" opt; do
                 ;;
             esac
         done
-        echo "Keep zip files: $long_flag_value"
         ;;
     esac
 done
