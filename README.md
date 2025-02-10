@@ -4,8 +4,7 @@
 ```mermaid
   graph TD;
       genome_download.sh-->summary_download.sh;
-      genome_download.sh-->C;
-      genome_download.sh-->D;
+      genome_download.sh-->tsv_datasets_downloader.sh;
       summary_download.sh-->utils;
       summary_download.sh-->datasets;
       summary_download.sh-->dataformat;
@@ -19,7 +18,7 @@
       utils-->dataformat;
 ```
 
-download scripts for [NCBI cli tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/).
+download scripts for [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/).
 
 
 Output for `./genome_download.sh`
