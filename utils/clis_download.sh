@@ -1,13 +1,14 @@
 #!/bin/bash
 
 os=$(uname)
-scripts_dir="$(dirname "$0")"
-scripts_dir="$(realpath "$scripts_dir")"/
+utils_dir="$(dirname "$0")"
+utils_dir="$(realpath "$utils_dir")"/
+
 
 should_renew_file() {
-    if [[ -f "$scripts_dir"datasets ]] && [[ -f "$scripts_dir"datasets ]]; then
+    if [[ -f "$utils_dir"datasets ]] && [[ -f "$utils_dir"datasets ]]; then
         # Make a query to check if a new version exists
-        command_output=$("$scripts_dir"datasets summary genome taxon Aphelenchoides --limit 0 2>&1 1>/dev/null) # Capture stderr output
+        command_output=$("$utils_dir"datasets summary genome taxon Aphelenchoides --limit 0 2>&1 1>/dev/null) # Capture stderr output
         if [[ $command_output =~ ^"New version of client" ]]; then
             return 0 # New version detected
         else
@@ -28,12 +29,12 @@ fi
 if should_renew_file; then
     echo "ncbi datasets not found or too old, attempting to download"
     if [ "$os" = "Linux" ]; then
-        curl -o "$scripts_dir"datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/datasets'
-        curl -o "$scripts_dir"dataformat 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/dataformat'
-        chmod +x "$scripts_dir"datasets "$scripts_dir"dataformat
+        curl -o "$utils_dir"datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/datasets'
+        curl -o "$utils_dir"dataformat 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/linux-amd64/dataformat'
+        chmod +x "$utils_dir"datasets "$utils_dir"dataformat
     elif [ "$os" = "Darwin" ]; then
-        curl -o "$scripts_dir"datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/datasets'
-        curl -o "$scripts_dir"dataformat 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/dataformat'
-        chmod +x "$scripts_dir"datasets "$scripts_dir"dataformat
+        curl -o "$utils_dir"datasets 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/datasets'
+        curl -o "$utils_dir"dataformat 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/v2/mac/dataformat'
+        chmod +x "$utils_dir"datasets "$utils_dir"dataformat
     fi
 fi

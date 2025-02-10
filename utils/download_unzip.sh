@@ -38,7 +38,7 @@ download_and_unzip() {
     # Download this accession
     api_key_flag="${api_key:+--api-key \"$api_key\"}"
     # shellcheck disable=SC2086
-    if ! "$scripts_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome${annotate:+,gff3} --no-progressbar $api_key_flag; then
+    if ! "$utils_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome${annotate:+,gff3} --no-progressbar $api_key_flag; then
         echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
         return 1
     fi
