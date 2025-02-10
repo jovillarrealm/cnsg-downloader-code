@@ -18,7 +18,7 @@ utils_dir="$(realpath "$utils_dir")"/
 
 
 should_renew_file() {
-    if [[ -f "$utils_dir"datasets ]] && [[ -f "$utils_dir"datasets ]]; then
+    if [[ -f "$utils_dir"datasets ]] && [[ -f "$utils_dir"dataformat ]]; then
         # Make a query to check if a new version exists
         command_output=$("$utils_dir"datasets summary genome taxon Aphelenchoides --limit 0 2>&1 1>/dev/null) # Capture stderr output
         if [[ $command_output =~ ^"New version of client" ]]; then
