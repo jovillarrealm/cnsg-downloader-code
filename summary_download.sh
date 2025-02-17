@@ -76,6 +76,11 @@ echo "TSV: ""$taxon"
 echo "Download: ""$output_dir"
 
 : "${api_key:=$NCBI_API_KEY}"
+ if [[ -z ${api_key+x} ]]; then
+    yes
+else
+    echo "NO API KEY FOUND: using 3 concurrent downloads"
+fi
 
 # Create temporary and output directories
 mkdir -p "$output_dir" || {

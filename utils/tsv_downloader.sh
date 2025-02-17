@@ -108,6 +108,8 @@ setup_data() {
     : "${api_key:=$NCBI_API_KEY}"
     if [[ -z ${api_key+x} ]]; then
         num_process=10
+    else
+    echo "NO API KEY FOUND: using 3 concurrent downloads"
     fi
 }
 
