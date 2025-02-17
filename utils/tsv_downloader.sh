@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Function to update the GENOMIC directory path based on the current batch. 
+# Function to update the GENOMIC directory path based on the current batch.
 # genomics_dir is set and exists after this
 update_dir_count() {
     genomic_dir="${output_dir}GENOMIC${batch_number}/"
@@ -107,9 +107,8 @@ setup_data() {
 
     : "${api_key:=$NCBI_API_KEY}"
     if [[ -z ${api_key+x} ]]; then
-        num_process=10
+        echo "NO API KEY FOUND: using 3 concurrent downloads"
     else
-    echo "NO API KEY FOUND: using 3 concurrent downloads"
+        num_process=10
     fi
 }
-
