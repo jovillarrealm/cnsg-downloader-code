@@ -5,9 +5,9 @@ print_help() {
     echo ""
     echo ""
     echo "Arguments:"
-    echo "list_file is a file containig a list with the following format:"
+    echo "list_file is a file containig a list with the following format"
     echo "delimiter is the character that serves to separate items [Default: _]"
-    echo "output is the path of the resulting tsv"
+    echo "output is the path of the resulting tsv [Default: {list_file}.tsv]"
     echo ""
     echo "GCF_011040455_Bacillus_tropicus_"
     echo "GCF_020809245_Bacillus_thuringiensis_"
@@ -32,9 +32,10 @@ if [[ $# -lt 1 ]]; then
 fi
 
 underscore_to_tsv() {
-    echo "Assembly Accession	Assembly Name	Organism Name" > "$output"
+    echo "Assembly Accession	Assembly Name	Organism Name" >"$output"
     awk -v separator="$delimiter" 'BEGIN { FS=separator; OFS="\t" }
     {
+        gsub(/\.[^.]*$/, "", $0)
         first_two = $1 "_" $2
         next_two = $3 "-" $4
         remaining = ""
@@ -45,6 +46,18 @@ underscore_to_tsv() {
     }' "$1" >>"$output"
 }
 
-if [[ "$delimiter" = "_" ]]; then
+filelist_to_tsv() {
+    echo "Assembly Accession	Assembly Name	Organism Name" >"$output"
+    awk -v separator="$delimiter" 'BEGIN { FS="_"; OFS="\t" }
+    {
+        gsub(/\.[^.]*$/, "", $0)
+        first_two = $1 "_" $2
+        print first_two, $3, $4
+    }' "$1" >>"$output"
+}
+
+if [[ "$delimiter" != "file" ]]; then
     underscore_to_tsv "$@"
+elif [[ "$delimiter" = "file" ]]; then
+    filelist_to_tsv "$@"
 fi
