@@ -32,6 +32,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 underscore_to_tsv() {
+    echo "Assembly Accession	Assembly Name	Organism Name" > "$output"
     awk -v separator="$delimiter" 'BEGIN { FS=separator; OFS="\t" }
     {
         first_two = $1 "_" $2
@@ -41,7 +42,7 @@ underscore_to_tsv() {
             remaining = (remaining == "" ? $i : remaining "-" $i)
         }
         print first_two, next_two, remaining
-    }' "$1" >"$output"
+    }' "$1" >>"$output"
 }
 
 if [[ "$delimiter" = "_" ]]; then

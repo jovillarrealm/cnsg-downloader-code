@@ -42,15 +42,14 @@ download_and_unzip() {
     fi
 
     # Create directory for downloaded files
-    mkdir -p "$filepath" || {
+    if ! mkdir -p "$filepath" ; then  
         echo "Error creating directory: $filepath"
         exit 1
-    }
+    fi
 
     # Download this accession
-    api_key_flag="${api_key:+--api-key \"$api_key\"}"
     # shellcheck disable=SC2086
-    if ! "$utils_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome${annotate:+,gff3} --no-progressbar $api_key_flag; then
+    if ! "$utils_dir"datasets download genome accession "$accession" --filename "$complete_zip_path" --include genome${annotate:+,gff3} --no-progressbar ${api_key:+--api-key \"$api_key\"}; then
         echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
         return 1
     fi
@@ -85,16 +84,25 @@ download_and_unzip() {
         fi
 
         if ! mv -n "$complete_zip_path" "$downloaded_path"; then
-            echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
+            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename.fna"
         fi
 
     elif [[ $convert_gzip_files = "true" ]]; then
-        # Unzip genome
-        archive_file="ncbi_dataset/data/$accession"
-        unzip -oq "$complete_zip_path" "$archive_file""/GC*.fna" -d "$filepath"
+        # Find the .fna file in the archive using unzip -l
+        fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
 
-        if ! find "$filepath""$archive_file" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
-            echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
+        # Check if a .fna file was found
+        if [[ -z "$fna_file" ]]; then
+            echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+            rm "$complete_zip_path"
+            return 1
+        fi
+        new_name=$filename.fna
+        printf "@ %s\n@=%s" "$fna_file" "$new_name"  | zipnote -w "$complete_zip_path"
+        unzip -oq "$complete_zip_path" "*.fna" -d "$filepath"
+
+        if ! find "$filepath" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
+            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename.fna"
         fi
         # gzip the genome
         if ! gzip "$genomic_dir""$filename.fna"; then
@@ -104,19 +112,37 @@ download_and_unzip() {
 
     else
 
-        archive_file="ncbi_dataset/data/$accession"
-
-        # Unzip genome
-        unzip -oq "$complete_zip_path" "$archive_file""/GC*_genomic.fna" -d "$filepath"
+        # Find the .fna file in the archive using unzip -l
+        fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+        # Check if a .fna file was found
+        if [[ -z "$fna_file" ]]; then
+            echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+            rm "$complete_zip_path"
+            return 1
+        fi
+        new_name=$filename.fna
+        printf "@ %s\n@=%s" "$fna_file" "$new_name"  | zipnote -w "$complete_zip_path"
+        unzip -oq "$complete_zip_path" "GC*.fna" -d "$filepath"
         if [[ $annotate = "true" ]]; then
-            unzip -oq "$complete_zip_path" "$archive_file""/g*.gff" -d "$filepath"
+            gff_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.gff$')
+
+            # Check if a .gff file was found
+            if [[ -z "$gff_file" ]]; then
+                echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+                rm "$complete_zip_path"
+                return 1
+            fi
+            new_name=$filename.gff
+
+            printf "@ %s\n@=%s" "$gff_file" "$new_name" | zipnote -w "$complete_zip_path"
+            unzip -oq "$complete_zip_path" "*.gff" -d "$filepath"
         fi
 
-        if ! find "$filepath""$archive_file" -type f -name "*fna" -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
-            echo "**** ERROR TO MOVE contents of : " "$filepath""$archive_file/" "  in  " "$genomic_dir""$filename.fna"
+        if ! find "$filepath" -type f -name "*fna" -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
+            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename.fna"
         else
             if [[ $annotate = "true" ]]; then
-                find "$filepath""$archive_file" -type f -name "*gff" -print0 | xargs -0 -I {} mv -n {} "$gff_dir""$filename.gff"
+                find "$filepath" -type f -name "*gff" -print0 | xargs -0 -I {} mv -n {} "$gff_dir""$filename.gff"
             fi
         fi
     fi
