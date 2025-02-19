@@ -19,9 +19,9 @@ Then install any necesary tools. Specifically the [NCBI Datasets command-line to
 cnsg-downloader-code/utils/clis_download.sh
 ```
 
-Optionally test its behaviour by downloading genomes and annotations for Aphelenchoides. Running `download_genome.sh` will also call that same script.
+Optionally test its behaviour by downloading genomes and annotations for Aphelenchoides. Running `genome_download.sh` will also call that same script.
 ```
-cnsg-downloader-code/download_genome.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
+cnsg-downloader-code/genome_download.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
 ```
 
 
