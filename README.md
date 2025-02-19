@@ -21,7 +21,7 @@ cnsg-downloader-code/utils/clis_download.sh
 
 Optionally test its behaviour by downloading genomes and annotations for Aphelenchoides. Running `download_genome.sh` will also call that same script.
 ```
-cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
+cnsg-downloader-code/download_genome.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
 ```
 
 
