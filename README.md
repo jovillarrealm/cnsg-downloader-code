@@ -16,6 +16,9 @@ And please set the variable NCBI_API_KEY in your environment.
 Optionally test its behaviour by downloading genomes and annotations for Aphelenchoides, this will also install any necesary tools. specifically the [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/), [count-fasta-rs](https://github.com/jovillarrealm/count-fasta-rs), and [uv](https://github.com/astral-sh/uv).
 
 ```
+cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -l 0
+```
+```
 cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
 ```
 
