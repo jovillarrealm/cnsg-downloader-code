@@ -20,16 +20,23 @@ download scripts for [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih
       utils-->dataformat;
 ```
 
+## Installation
+
+First, git clone this repo and let it have execution permissions.
+```
+git clone https://github.com/jovillarrealm/cnsg-downloader-code.git
+find cnsg-downloader-code -type f -exec chmod +x {} \;
+```
+
+Optionally test its behaviour by downloading genomes and annotations for 
+
+```
+cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
+```
 
 
 ## Usage 
 
-First, a shorthand for giving +x permissions.
-
-  cd cnsg-downloader-code
-  chmod +x *
-  cd utils
-  chmod +x *
 
 Output for `./genome_download.sh`
 
