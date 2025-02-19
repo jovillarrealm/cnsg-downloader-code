@@ -13,11 +13,13 @@ find cnsg-downloader-code -type f -exec chmod +x {} \;
 
 And please set the variable NCBI_API_KEY in your environment.
 
-Optionally test its behaviour by downloading genomes and annotations for Aphelenchoides, this will also install any necesary tools. specifically the [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/), [count-fasta-rs](https://github.com/jovillarrealm/count-fasta-rs), and [uv](https://github.com/astral-sh/uv).
+Then install any necesary tools. Specifically the [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/), [count-fasta-rs](https://github.com/jovillarrealm/count-fasta-rs), and [uv](https://github.com/astral-sh/uv).
 
 ```
-cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -l 0
+cnsg-downloader-code/utils/clis_download.sh
 ```
+
+Optionally test its behaviour by downloading genomes and annotations for Aphelenchoides. Running `download_genome.sh` will also call that same script.
 ```
 cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
 ```
@@ -33,7 +35,7 @@ Like this.
 
 https://github.com/user-attachments/assets/58a8a205-8726-4a35-a8d8-db75650525d2
 
-This approach lasts for a session so please modify your configurations files to make this last. These could be .bashrc .zshrc .profile
+This approach lasts for a session so please modify your configurations files to make this last. These could be any of these .bashrc .zshrc .profile
 
 
 ## Usage 
