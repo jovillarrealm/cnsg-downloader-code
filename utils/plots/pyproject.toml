@@ -1,0 +1,11 @@
+[project]
+name = "plots-count-fasta"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib>=3.10.0",
+    "polars-lts-cpu>=1.22.0",
+    "seaborn>=0.13.2",
+]

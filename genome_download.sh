@@ -38,7 +38,7 @@ print_help() {
     echo ""
     echo "--convert-gzip-files  ensures downloaded genomes are not recompressed after download into a gz file"
     echo ""
-    echo "--annotate=true   adds gff annotations"
+    echo "--annotate=true   adds gff annotations on another directory"
     echo ""
     echo ""
     echo "Example usage:"
@@ -83,9 +83,9 @@ process_directory() {
 
     dircount=$((dircount + 1))
 
-    if [[ "$os" == "Darwin" ]]; then
-        count-fasta-plots "$stats_file"
-    fi
+    plots_dir="$utils_dir"plots/ 
+    uv run --project "$plots_dir" "$plots_dir"plots-count-fasta.py "$stats_file" 
+
 }
 
 os=$(uname)

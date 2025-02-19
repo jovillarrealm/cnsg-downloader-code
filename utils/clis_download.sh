@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+
 os=$(uname)
 utils_dir="$(dirname "$0")"
 utils_dir="$(realpath "$utils_dir")"/
-
+plots_dir="$utils_dir"plots-count-fasta/
 
 should_renew_file() {
     if [[ -f "$utils_dir"datasets ]] && [[ -f "$utils_dir"dataformat ]]; then
@@ -31,12 +33,17 @@ should_renew_file() {
     fi
 }
 
-if ! count-fasta-rs -V 1>/dev/null 2>/dev/null; then
+if ! count-fasta-rs -V 1>/dev/null 2>&1; then
     curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jovillarrealm/count-fasta-rs/releases/download/v0.6.2/count-fasta-rs-installer.sh | sh
-    if [ "$os" = "Darwin" ]; then
-        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jovillarrealm/count-fasta-plots/releases/download/v0.1.4/count-fasta-plots-installer.sh | sh
-    fi
 fi
+
+
+if ! uv -V 1>/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+
+
+
 
 if should_renew_file; then
     echo "ncbi datasets not found or too old, attempting to download"
