@@ -189,20 +189,18 @@ start_time=$(date +%s)
 # If the summary already ran before, skip it
 api_key_flag="${api_key_file:+-a \"$api_key_file\"}"
 download_file="$output_dir""$taxon""_""$today"".tsv"
-if [ ! -f "$download_file" ]; then
-    # shellcheck disable=SC2086
-    if ! "$scripts_dir"summary_download.sh \
-        -i "$taxon" \
-        -o "$output_dir" \
-        -p "$prefix" \
-        $api_key_flag \
-        $limit_flag \
-        ${reference:+-r true}; then
-        exit 1
-    fi
-else
-    echo "Summary for $taxon on $today already exists"
+
+# shellcheck disable=SC2086
+if ! "$scripts_dir"summary_download.sh \
+    -i "$taxon" \
+    -o "$output_dir" \
+    -p "$prefix" \
+    $api_key_flag \
+    $limit_flag \
+    ${reference:+-r true}; then
+    exit 1
 fi
+
 echo "** DONE **"
 end_time=$(date +%s)
 elapsed_time=$((end_time - start_time))
