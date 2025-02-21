@@ -23,7 +23,8 @@ Optionally test its behaviour by downloading genomes and annotations for Aphelen
 ```
 cnsg-downloader-code/genome_download.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
 ```
-
+Pls attempt
+![attempt](https://github.com/user-attachments/assets/17bf7b0d-09ae-48eb-90e1-efb730a43385)
 
 
 
