@@ -17,6 +17,7 @@ download_and_unzip() {
     local accession="$accession"
     local accession_name="$accession_name"
     local filename="$filename"
+    local filename_ext="$filename"
     local filepath="$tmp_dir""$accession_name""/"
     local complete_zip_path="$filepath""$filename.zip"
     local downloaded_path
@@ -25,24 +26,29 @@ download_and_unzip() {
 
     ## Decide what the downloaded path should look like
     if [[ $keep_zip_files = "true" ]]; then
-        downloaded_path="$genomic_dir""$filename.zip"
+        filename="$filename.zip"
     elif [[ $convert_gzip_files = "true" ]]; then
-        ## If we are unzipping the files
-        downloaded_path="$genomic_dir""$filename.gz"
+        filename="$filename.fna.gz"
     else
-        downloaded_path="$genomic_dir""$filename.fna"
+        filename="$filename.fna"
     fi
+    downloaded_path="$genomic_dir""$filename"
 
     # Skip if the file has already been downloaded
     if [ -f "$downloaded_path" ]; then
         return 0
     else
-        # Remove any file with the same accession
-        find "$genomic_dir" -type f -name "$accession*" -exec rm {} \;
+        found=$(find "$output_dir" -type f -name "$filename_ext*")
+        if [ -z "${found}" ]; then
+            # Remove any file with the same accession if it exists
+            find "$output_dir" -type f -name "$accession*" -exec rm {} \;
+        else
+            return 0
+        fi
     fi
 
     # Create directory for downloaded files
-    if ! mkdir -p "$filepath" ; then  
+    if ! mkdir -p "$filepath"; then
         echo "Error creating directory: $filepath"
         exit 1
     fi
@@ -65,9 +71,8 @@ download_and_unzip() {
             rm "$complete_zip_path"
             return 1
         fi
-        new_name=$filename.fna
 
-        printf "@ %s\n@=%s" "$fna_file" "$new_name"  | zipnote -w "$complete_zip_path"
+        printf "@ %s\n@=%s" "$fna_file" "$filename_ext".fna | zipnote -w "$complete_zip_path"
         if [[ $annotate = "true" ]]; then
             # Find the .gff file in the archive using unzip -l
             gff_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.gff$')
@@ -78,13 +83,11 @@ download_and_unzip() {
                 rm "$complete_zip_path"
                 return 1
             fi
-            new_name=$filename.gff
-
-            printf "@ %s\n@=%s" "$gff_file" "$new_name" | zipnote -w "$complete_zip_path"
+            printf "@ %s\n@=%s" "$gff_file" "$filename_ext".gff | zipnote -w "$complete_zip_path"
         fi
 
         if ! mv -n "$complete_zip_path" "$downloaded_path"; then
-            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename.fna"
+            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$downloaded_path"
         fi
 
     elif [[ $convert_gzip_files = "true" ]]; then
@@ -97,32 +100,32 @@ download_and_unzip() {
             rm "$complete_zip_path"
             return 1
         fi
-        new_name=$filename.fna
-        printf "@ %s\n@=%s" "$fna_file" "$new_name"  | zipnote -w "$complete_zip_path"
+
+        printf "@ %s\n@=%s" "$fna_file" "$filename_ext".fna | zipnote -w "$complete_zip_path"
         unzip -oq "$complete_zip_path" "*.fna" -d "$filepath"
 
-        if ! find "$filepath" -type f -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
-            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename.fna"
-        fi
         # gzip the genome
-        if ! gzip "$genomic_dir""$filename.fna"; then
-            echo "**** ERROR TO GZIP contents of : " "$genomic_dir""$filename.fna"
-            rm "$genomic_dir""$filename.fna"
+        if ! gzip "$filepath""$filename_ext".fna; then
+            echo "**** ERROR TO GZIP contents of : " "$genomic_dir""$filename"
+            rm "$filepath""$filename_ext".fna
+        fi
+
+        if ! mv -n "$filepath""$filename_ext".fna.gz "$downloaded_path"; then
+            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$downloaded_path"
         fi
 
     else
 
         # Find the .fna file in the archive using unzip -l
         fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
-        # Check if a .fna file was found
+        # Check if a .fna file was found, rename the inner fna file
         if [[ -z "$fna_file" ]]; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             rm "$complete_zip_path"
             return 1
         fi
-        new_name=$filename.fna
-        printf "@ %s\n@=%s" "$fna_file" "$new_name"  | zipnote -w "$complete_zip_path"
-        unzip -oq "$complete_zip_path" "GC*.fna" -d "$filepath"
+        printf "@ %s\n@=%s" "$fna_file" "$filename_ext".fna | zipnote -w "$complete_zip_path"
+        unzip -oq "$complete_zip_path" "*.fna" -d "$filepath"
         if [[ $annotate = "true" ]]; then
             gff_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.gff$')
 
@@ -132,17 +135,17 @@ download_and_unzip() {
                 rm "$complete_zip_path"
                 return 1
             fi
-            new_name=$filename.gff
+            new_name=$filename_ext.gff
 
             printf "@ %s\n@=%s" "$gff_file" "$new_name" | zipnote -w "$complete_zip_path"
             unzip -oq "$complete_zip_path" "*.gff" -d "$filepath"
         fi
 
-        if ! find "$filepath" -type f -name "*fna" -print0 | xargs -0 -I {} mv -n {} "$genomic_dir""$filename.fna"; then
-            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename.fna"
+        if ! find "$filepath" -type f -name "*fna" -print0 | xargs -0 -I {} mv -n {} "$downloaded_path"; then
+            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename"
         else
             if [[ $annotate = "true" ]]; then
-                find "$filepath" -type f -name "*gff" -print0 | xargs -0 -I {} mv -n {} "$gff_dir""$filename.gff"
+                find "$filepath" -type f -name "*gff" -print0 | xargs -0 -I {} mv -n {} "$gff_dir""$filename_ext.gff"
             fi
         fi
     fi

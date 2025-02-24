@@ -16,8 +16,7 @@ import seaborn as sns
 import polars as pl
 import os
 
-def main():
-    print("Hello from plots-count-fasta!")
+
 
 def plots(df:pl.DataFrame, output_name:str,extension:str, transparent:bool):
     # Configurar el estilo de los gráficos

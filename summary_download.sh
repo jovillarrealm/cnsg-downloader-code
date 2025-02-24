@@ -2,6 +2,8 @@
 
 output_dir="./"
 prefix='both'
+date_format='%d-%m-%Y'
+today="$(date +$date_format)"
 print_help() {
     echo ""
     echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p source-db] [-r true]"
@@ -35,7 +37,7 @@ scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 utils_dir="$scripts_dir"utils/
 download_genes=false
-while getopts ":h:i:o:a:p:g:l:r:" opt; do
+while getopts ":h:i:o:a:p:g:e:l:r:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
@@ -55,6 +57,9 @@ while getopts ":h:i:o:a:p:g:l:r:" opt; do
     g)
         gene="${OPTARG}"
         download_genes=true
+        ;;
+    e)
+        exclude="${OPTARG}"
         ;;
     r)
         reference="${OPTARG}"
@@ -76,8 +81,11 @@ echo "TSV: ""$taxon"
 echo "Download: ""$output_dir"
 
 : "${api_key:=$NCBI_API_KEY}"
- if [[ -z ${api_key} ]]; then
+if [[ -z ${api_key} ]]; then
     echo "NO API KEY FOUND: using 3 concurrent downloads"
+fi
+if [[ -z ${exclude} ]]; then
+    exclude="$output_dir"exclusions.txt
 fi
 
 # Create temporary and output directories
@@ -105,19 +113,30 @@ if [ "$download_genes" = true ]; then
     "$utils_dir"datasets summary gene symbol "$gene" --taxon "$taxon" --as-json-lines ${api_key:+--api-key "$api_key"}
 else
     if [ ! -f "$download_file" ]; then
-    "$utils_dir"datasets summary genome taxon "$taxon" \
-        --assembly-source "$source_db" \
-        --assembly-version "latest" \
-        --mag "exclude" \
-        --as-json-lines \
-        ${api_key:+ --api-key "$api_key"} \
-        ${limit_size:+ --limit "$limit_size"} \
-        ${reference:+ --reference} |
-        "$utils_dir"dataformat tsv genome \
-            --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+
+        "$utils_dir"datasets summary genome taxon "$taxon" \
+            --assembly-source "$source_db" \
+            --assembly-version "latest" \
+            --mag "exclude" \
+            --as-json-lines \
+            ${api_key:+ --api-key "$api_key"} \
+            ${limit_size:+ --limit "$limit_size"} \
+            ${reference:+ --reference} |
+            "$utils_dir"dataformat tsv genome \
+                --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+
     else
         echo "Summary for $taxon on $today already exists"
     fi
+fi
+
+if [ -f "$exclude" ]; then
+    temp_file=$(mktemp "${download_file}.XXXXXX")
+    awk -f "$utils_dir"filter.awk "$exclude" "$download_file" >"$temp_file"
+    mv "$temp_file" "$download_file" || {
+        echo "Failed to filter out accessions"
+    }
+    echo "Excluded accessions from $exclude"
 fi
 
 # Fun with flags on datasets v16+:

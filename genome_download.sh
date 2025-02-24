@@ -94,7 +94,7 @@ scripts_dir="$(realpath "$scripts_dir")"/
 utils_dir="$scripts_dir"utils/
 batch_size=50000
 annotate=
-while getopts ":h:i:o:a:p:b:l:r:" opt; do
+while getopts ":h:i:o:a:p:e:b:l:r:" opt; do
     case "${opt}" in
     i)
         taxon="${OPTARG}"
@@ -126,6 +126,9 @@ while getopts ":h:i:o:a:p:b:l:r:" opt; do
         api_key_file="${OPTARG}"
         api_key=$(cat "${OPTARG}")
         ;;
+    e)
+        exclusions="${OPTARG}"
+        ;;
     p)
         prefix="${OPTARG}"
         ;;
@@ -137,7 +140,6 @@ while getopts ":h:i:o:a:p:b:l:r:" opt; do
         ;;
     l)
         limit_size="${OPTARG}"
-        limit_flag="${limit_size:+-l "$limit_size"}"
         ;;
     h)
         print_help
@@ -187,7 +189,6 @@ echo
 echo "** STARTING SUMMARY DOWNLOAD **"
 start_time=$(date +%s)
 # If the summary already ran before, skip it
-api_key_flag="${api_key_file:+-a \"$api_key_file\"}"
 download_file="$output_dir""$taxon""_""$today"".tsv"
 
 # shellcheck disable=SC2086
@@ -195,8 +196,9 @@ if ! "$scripts_dir"summary_download.sh \
     -i "$taxon" \
     -o "$output_dir" \
     -p "$prefix" \
-    $api_key_flag \
-    $limit_flag \
+    ${api_key_file:+-a \"$api_key_file\"} \
+    ${limit_size:+-l "$limit_size"} \
+    ${exclusions:+ -e "$exclusions"} \
     ${reference:+-r true}; then
     exit 1
 fi
@@ -215,7 +217,9 @@ start_time=$(date +%s)
 # shellcheck disable=SC2086
 if ! "${scripts_dir}tsv_datasets_downloader.sh" -i "$download_file" \
     -o "$output_dir" -p "$prefix" -b "$batch_size" \
-    $api_key_flag $keep_zip_flag $convert_gzip_flag \
+    ${api_key_file:+-a \"$api_key_file\"} \
+    $keep_zip_flag \
+    $convert_gzip_flag \
     ${annotate:+--annotate=true}; then
     exit 1
 fi
