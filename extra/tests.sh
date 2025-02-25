@@ -27,9 +27,9 @@ test_count_fasta_rs_vs_perl() {
 
 test_count_fasta_rs_gzip_files() {
     echo $target_dir
-    find "$target_dir" -type f -name "*fna.gz" -exec count-fasta-rs {} \; >>$gz_compare_dir/gz.out
+    find "$target_dir" -type f -name "*fna.gz" -exec count-fasta-rs -l {} \; >>$gz_compare_dir/gz.out
     find "$target_dir" -type f -name "*fna.gz" -exec gzip -d {} \;
-    find "$target_dir" -type f -name "*fna" -exec count-fasta-rs {} \; >>$gz_compare_dir/plain.out
+    find "$target_dir" -type f -name "*fna" -exec count-fasta-rs -l {} \; >>$gz_compare_dir/plain.out
     sort -r $gz_compare_dir/gz.out > $gz_compare_dir/gz_s.out
     sort -r $gz_compare_dir/plain.out > $gz_compare_dir/plain_s.out
     diff -w $gz_compare_dir/gz_s.out $gz_compare_dir/plain_s.out >>$gz_compare_dir/diff_file
@@ -37,10 +37,10 @@ test_count_fasta_rs_gzip_files() {
 
 test_count_fasta_rs_zip_files() {
     echo $target_dir
-    find "$target_dir" -maxdepth 2 -type f -name "*zip" -exec count-fasta-rs {} \; >> $zip_compare_dir/zip.out
+    find "$target_dir" -maxdepth 2 -type f -name "*zip" -exec count-fasta-rs -l {} \; >> $zip_compare_dir/zip.out
     sort -r $zip_compare_dir/zip.out > $zip_compare_dir/zip_s.out
     find "$target_dir" -type f -name "*zip" -print0 | xargs -0 -I {} unzip -q -o -d "$target_dir" {} "*.fna"
-    find "$target_dir" -type f -name "*fna" -exec count-fasta-rs {} \; >>$zip_compare_dir/plain.out
+    find "$target_dir" -type f -name "*fna" -exec count-fasta-rs -l {} \; >>$zip_compare_dir/plain.out
     sort -r $zip_compare_dir/plain.out > $zip_compare_dir/plain_s.out
     diff -w $zip_compare_dir/zip_s.out $zip_compare_dir/plain_s.out >>$zip_compare_dir/diff_file
 }

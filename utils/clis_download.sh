@@ -34,7 +34,7 @@ should_renew_file() {
 }
 
 if ! count-fasta-rs -V 1>/dev/null 2>&1; then
-    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jovillarrealm/count-fasta-rs/releases/download/v0.6.2/count-fasta-rs-installer.sh | sh
+    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jovillarrealm/count-fasta-rs/releases/download/v0.6.3/count-fasta-rs-installer.sh | sh
 fi
 
 

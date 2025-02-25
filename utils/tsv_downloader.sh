@@ -119,7 +119,7 @@ delete_exclusions() {
         exclude="$output_dir"exclusions.txt
     fi
     if [ -f "$exclude" ]; then
-        echo "Deleting files..."
+        echo "Deleting exclusions..."
         while IFS= read -r prefix; do
             prefix=$(echo "$prefix" | awk -F'.' '{print $1}')
             #echo "Processing prefix: '$prefix'"

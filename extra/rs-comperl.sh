@@ -28,7 +28,7 @@ scripts_dir="$(realpath "$scripts_dir")"/
 "$scripts_dir"count_fasta_cnsg.pl -i 100 "$1" > "$tmperlfile" 2> /dev/null
 tail -n 13 "$tmperlfile" > "$tmp_dir"tmpfile && mv "$tmp_dir"tmpfile "$tmperlfile"
 
-count-fasta-rs "$1" > "$tmprsfile"
+count-fasta-rs -l "$1" > "$tmprsfile"
 
 diff -w "$tmperlfile" "$tmprsfile" > "$diff_file"
 

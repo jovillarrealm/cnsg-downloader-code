@@ -21,6 +21,7 @@ download_and_unzip() {
     local filepath="$tmp_dir""$accession_name""/"
     local complete_zip_path="$filepath""$filename.zip"
     local downloaded_path
+    local g_ext=".fna"
 
     # Download files
 
@@ -28,9 +29,9 @@ download_and_unzip() {
     if [[ $keep_zip_files = "true" ]]; then
         filename="$filename.zip"
     elif [[ $convert_gzip_files = "true" ]]; then
-        filename="$filename.fna.gz"
+        filename="$filename$g_ext.gz"
     else
-        filename="$filename.fna"
+        filename="$filename$g_ext"
     fi
     downloaded_path="$genomic_dir""$filename"
 
@@ -62,17 +63,17 @@ download_and_unzip() {
 
     if [[ $keep_zip_files = "true" ]]; then
 
-        # Find the .fna file in the archive using unzip -l
-        fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+        # Find the genomic file in the archive using unzip -l
+        genomic_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
 
-        # Check if a .fna file was found
-        if [[ -z "$fna_file" ]]; then
+        # Check if a genomic file was found
+        if [[ -z "$genomic_file" ]]; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             rm "$complete_zip_path"
             return 1
         fi
 
-        printf "@ %s\n@=%s" "$fna_file" "$filename_ext".fna | zipnote -w "$complete_zip_path"
+        printf "@ %s\n@=%s" "$genomic_file" "$filename_ext"$g_ext | zipnote -w "$complete_zip_path"
         if [[ $annotate = "true" ]]; then
             # Find the .gff file in the archive using unzip -l
             gff_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.gff$')
@@ -91,41 +92,41 @@ download_and_unzip() {
         fi
 
     elif [[ $convert_gzip_files = "true" ]]; then
-        # Find the .fna file in the archive using unzip -l
-        fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+        # Find the genomic file in the archive using unzip -l
+        genomic_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
 
-        # Check if a .fna file was found
-        if [[ -z "$fna_file" ]]; then
+        # Check if a genomic file was found
+        if [[ -z "$genomic_file" ]]; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             rm "$complete_zip_path"
             return 1
         fi
 
-        printf "@ %s\n@=%s" "$fna_file" "$filename_ext".fna | zipnote -w "$complete_zip_path"
-        unzip -oq "$complete_zip_path" "*.fna" -d "$filepath"
+        printf "@ %s\n@=%s" "$genomic_file" "$filename_ext"$g_ext | zipnote -w "$complete_zip_path"
+        unzip -oq "$complete_zip_path" "*$g_ext" -d "$filepath"
 
         # gzip the genome
-        if ! gzip "$filepath""$filename_ext".fna; then
+        if ! gzip "$filepath""$filename_ext"$g_ext; then
             echo "**** ERROR TO GZIP contents of : " "$genomic_dir""$filename"
-            rm "$filepath""$filename_ext".fna
+            rm "$filepath""$filename_ext"$g_ext
         fi
 
-        if ! mv -n "$filepath""$filename_ext".fna.gz "$downloaded_path"; then
+        if ! mv -n "$filepath""$filename_ext"$g_ext.gz "$downloaded_path"; then
             echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$downloaded_path"
         fi
 
     else
 
-        # Find the .fna file in the archive using unzip -l
-        fna_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
-        # Check if a .fna file was found, rename the inner fna file
-        if [[ -z "$fna_file" ]]; then
+        # Find the genomic file in the archive using unzip -l
+        genomic_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+        # Check if a genomic file was found, rename the inner genomic file
+        if [[ -z "$genomic_file" ]]; then
             echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
             rm "$complete_zip_path"
             return 1
         fi
-        printf "@ %s\n@=%s" "$fna_file" "$filename_ext".fna | zipnote -w "$complete_zip_path"
-        unzip -oq "$complete_zip_path" "*.fna" -d "$filepath"
+        printf "@ %s\n@=%s" "$genomic_file" "$filename_ext"$g_ext | zipnote -w "$complete_zip_path"
+        unzip -oq "$complete_zip_path" "*$g_ext" -d "$filepath"
         if [[ $annotate = "true" ]]; then
             gff_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.gff$')
 
@@ -141,7 +142,7 @@ download_and_unzip() {
             unzip -oq "$complete_zip_path" "*.gff" -d "$filepath"
         fi
 
-        if ! find "$filepath" -type f -name "*fna" -print0 | xargs -0 -I {} mv -n {} "$downloaded_path"; then
+        if ! find "$filepath" -type f -name "*$g_ext" -print0 | xargs -0 -I {} mv -n {} "$downloaded_path"; then
             echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$genomic_dir""$filename"
         else
             if [[ $annotate = "true" ]]; then
