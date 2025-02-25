@@ -5,7 +5,10 @@ BEGIN {
 }
 
 NR == FNR {
-  exceptions[$1] = 1;
+  accession = $1;
+  split(accession, parts, "."); # Split the accession to get the base
+  base_accession = parts[1];
+  exceptions[base_accession] = 1;
   next;
 }
 

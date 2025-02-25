@@ -112,4 +112,18 @@ setup_data() {
         num_process=10
     fi
 }
- 
+
+
+delete_exclusions() {
+    if [[ -z ${exclude} ]]; then
+        exclude="$output_dir"exclusions.txt
+    fi
+    if [ -f "$exclude" ]; then
+        echo "Deleting files..."
+        while IFS= read -r prefix; do
+            prefix=$(echo "$prefix" | awk -F'.' '{print $1}')
+            #echo "Processing prefix: '$prefix'"
+            find "$output_dir" -type f -name "$prefix*" -print -delete # or -exec rm {} \;
+        done <"$exclude"
+    fi
+}

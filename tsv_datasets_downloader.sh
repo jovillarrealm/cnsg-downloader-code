@@ -74,6 +74,9 @@ while getopts ":h:p:i:o:a:b:" opt; do
     b)
         batch_size="${OPTARG}"
         ;;
+    e)
+        exclude="${OPTARG}"
+        ;;
     h)
         print_help
         exit 0
@@ -121,6 +124,8 @@ eval "$(cat "$utils_dir"tsv_downloader.sh)"
 eval "$(cat "$utils_dir"download_unzip.sh)"
 
 setup_data
+
+delete_exclusions
 # can_we_use_wait_n is set
 # tmp_names is set
 # genomic_dir is set
