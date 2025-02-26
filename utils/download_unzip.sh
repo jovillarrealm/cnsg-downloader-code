@@ -11,7 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+utils_dir="$(dirname "$0")"
+utils_dir="$(realpath "$utils_dir")"/
+: "${1:? set an accession}"
+: "${2:? set an accession_name}"
+: "${3:? set a filename}" 
+: "${4:? set a tmp_dir}" 
+: "${5:? set a genomic_dir}" 
+: "${6:? set a output_dir}" 
+: "${8:? set a mode}" 
+: "${accession:="$1"}"
+: "${accession_name:="$2"}"
+: "${filename:="$3"}"
+: "${tmp_dir:="$4"}"
+: "${genomic_dir:="$5"}"
+: "${output_dir:="$6"}"
+: "${gff_dir:="$7"}"
+: "${mode:="$8"}"
 download_and_unzip() {
     # redundant shadowing to kind of tell the input of this function
     local accession="$accession"
@@ -26,12 +42,15 @@ download_and_unzip() {
     # Download files
 
     ## Decide what the downloaded path should look like
-    if [[ $keep_zip_files = "true" ]]; then
+    if [[ $mode = "zip" ]]; then
         filename="$filename.zip"
-    elif [[ $convert_gzip_files = "true" ]]; then
+    elif [[ $mode = "gzip" ]]; then
         filename="$filename$g_ext.gz"
-    else
+    elif [[ $mode = "fasta" ]]; then
         filename="$filename$g_ext"
+    else
+        echo "Error setting mode of download"
+        exit 1
     fi
     downloaded_path="$genomic_dir""$filename"
 
@@ -42,7 +61,8 @@ download_and_unzip() {
         found=$(find "$output_dir" -type f -name "$filename_ext*")
         if [ -z "${found}" ]; then
             # Remove any file with the same accession if it exists
-            find "$output_dir" -type f -name "$accession*" -exec rm {} \;
+            #find "$output_dir" -type f -name "$accession*" -exec rm {} \;
+            :
         else
             return 0
         fi
@@ -61,7 +81,7 @@ download_and_unzip() {
         return 1
     fi
 
-    if [[ $keep_zip_files = "true" ]]; then
+    if [[ $mode = "zip" ]]; then
 
         # Find the genomic file in the archive using unzip -l
         genomic_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
@@ -91,7 +111,7 @@ download_and_unzip() {
             echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$downloaded_path"
         fi
 
-    elif [[ $convert_gzip_files = "true" ]]; then
+    elif [[ $mode = "gzip" ]]; then
         # Find the genomic file in the archive using unzip -l
         genomic_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
 
@@ -153,3 +173,5 @@ download_and_unzip() {
 
     rm -r "$filepath"
 }
+
+download_and_unzip

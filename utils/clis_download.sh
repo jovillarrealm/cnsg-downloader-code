@@ -17,7 +17,6 @@
 os=$(uname)
 utils_dir="$(dirname "$0")"
 utils_dir="$(realpath "$utils_dir")"/
-plots_dir="$utils_dir"plots-count-fasta/
 
 should_renew_file() {
     if [[ -f "$utils_dir"datasets ]] && [[ -f "$utils_dir"dataformat ]]; then

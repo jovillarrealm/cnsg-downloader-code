@@ -3,11 +3,13 @@
 date_format='%d-%m-%Y'
 prefix="both"
 output_dir="./"
+batch_size=50000
 
 check_api_key() {
     if [[ -z ${api_key+x} ]]; then
         if [ -z "$NCBI_API_KEY" ]; then
-            echo "INFO: NCBI API key cannot be aquired from this environment"
+            echo "WARNING: NCBI API key cannot be aquired from this environment"
+            echo "Please set the NCBI_API_KEY var"
         else
             api_key=$NCBI_API_KEY
             echo "INFO: An NCBI API key can be aquired from this environment"
@@ -17,33 +19,37 @@ check_api_key() {
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i <taxon> [-o <directory_output>] [-a path/to/api/key/file] [-p prefered prefix] [--keep-zip-files=true] [--convert-gzip-files=true] [--annotate=true]"
+    echo "Usage: $0 -i <taxon> [-o directory_output] [-a path/to/api/key/file] [-p prefered prefix] [-e exclusions file] [-r reference genes] [-b batch size] "
+    echo "[--keep-zip-files=true] [--convert-gzip-files=true] [--annotate=true]"
     echo ""
+    check_api_key
     echo ""
     echo "Arguments:"
     echo "-i <taxon>    Can be a name or NCBI Taxonomy ID"
-    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
-    echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
-    echo "              [Options: 'GCF 'GCA' 'all' 'both']"
-    echo ""
+    echo "-o [path]     rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
+    echo "-p [prefix]   tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
+    echo "                  [Options: 'GCF 'GCA' 'all' 'both']"
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
-    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one. If it's not passed, this script tries to get it from env."
-    echo "-r            specify with any string to download only reference genomes"
-    echo "-l <Number>   limit the summary to the first <Number> of genomes"
+    echo ""
+    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one. If it's not passed, this script tries to get it from the environment variable NCI_API_KEY"
+    echo "-r [Any]      chooses to download only reference genomes. the argument is ignored but must be passed"
+    echo "-b [Number]   number of files in each GENOMIC folder [Default: $batch_size]"
+    echo "-e [path]     exclusions file [Default: ""$output_dir""exclusions.txt]"
+    echo "-l [Number]   limit the summary to the first [Number] of genomes"
     echo ""
     check_api_key
     echo ""
     echo "--keep-zip-files=true  ensures downloaded genomes are not decompressed after download, also it renames the inner fna file (without recompressing it)"
     echo ""
-    echo "--convert-gzip-files  ensures downloaded genomes are not recompressed after download into a gz file"
+    echo "--convert-gzip-files=true  ensures downloaded genomes are not recompressed after download into a gz file"
     echo ""
     echo "--annotate=true   adds gff annotations on another directory"
     echo ""
     echo ""
     echo "Example usage:"
-    echo "cnsg-downloader-code/downloadGenome.sh -i Aphelenchoides -o ./Aphelenchoides -a ./ncbi_api_key.txt -p all"
-    echo "cnsg-downloader-code/downloadGenome.sh -i 90723 -o ./Aphelenchoides -a ncbi_api_key.txt -p 'both'"
+    echo "cnsg-downloader-code/download_genome.sh -i Aphelenchoides -o ./Aphelenchoides -a ./ncbi_api_key.txt -p all"
+    echo "cnsg-downloader-code/download_genome.sh -i 90723 -o ./Aphelenchoides -a ncbi_api_key.txt -p 'both'"
     echo ""
     echo "This script assumes unzip is installed and next to"
     echo "summary_download and tsv_downloader.sh and clis_download.sh"
@@ -88,11 +94,9 @@ process_directory() {
 
 }
 
-os=$(uname)
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 utils_dir="$scripts_dir"utils/
-batch_size=50000
 annotate=
 while getopts ":h:i:o:a:p:e:b:l:r:" opt; do
     case "${opt}" in
@@ -215,7 +219,7 @@ echo
 echo "** STARTING DOWNLOADS **"
 start_time=$(date +%s)
 # shellcheck disable=SC2086
-if ! "${scripts_dir}tsv_datasets_downloader.sh" -i "$download_file" \
+if ! bash -x "${scripts_dir}tsv_datasets_downloader.sh" -i "$download_file" \
     -o "$output_dir" -p "$prefix" -b "$batch_size" \
     ${api_key_file:+-a \"$api_key_file\"} \
     $keep_zip_flag \

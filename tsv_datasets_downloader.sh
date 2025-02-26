@@ -19,10 +19,30 @@ scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 utils_dir="$scripts_dir"utils/
 
+
+check_api_key() {
+    if [[ -z ${api_key+x} ]]; then
+        if [ -z "$NCBI_API_KEY" ]; then
+            echo "WARNING: NCBI API key cannot be aquired from this environment"
+            echo "Please set the NCBI_API_KEY var"
+        else
+            api_key=$NCBI_API_KEY
+            echo "INFO: An NCBI API key can be aquired from this environment"
+        fi
+    fi
+    : "${api_key:=$NCBI_API_KEY}"
+    if [[ -z ${api_key+x} ]]; then
+        num_process=3
+    else
+        num_process=10
+    fi
+}
+
 print_help() {
     echo ""
     echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix] [--keep-zip-files=true] [--annotate=true]"
     echo ""
+    check_api_key
     echo ""
     echo "Arguments:"
     echo "-i            path to tsv file with datasets summary output"
@@ -30,7 +50,7 @@ print_help() {
     echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
     echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
     echo "              [Options: 'GCF 'GCA' 'all' 'both']"
-    echo "-b            batch size of each GENOMIC folder because even 'ls' starts to fail with directories with too many files [Default: 50_000]"
+    echo "-b            batch size of each GENOMIC folder because even 'ls' starts to fail with directories with too many files [Default: $batch_size]"
     echo ""
     echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
     echo ""
@@ -52,11 +72,53 @@ if [[ $# -lt 2 ]]; then
     exit 1
 fi
 
-num_process=3
-keep_zip_files=false
-convert_gzip_files=false
+
+#More variables
+mode="fasta"
 annotate=
-while getopts ":h:p:i:o:a:b:" opt; do
+batch_number=0
+file_count=0
+
+
+# Function to check if we can use wait -n on the current system based on the bash version. output written to can_use_wait_n
+can_we_use_wait_n() {
+    # Extract major and minor version numbers
+    IFS='.' read -r major minor _patch <<<"$BASH_VERSION"
+    # Compare the major and minor versions to check if they meet the minimum requirement
+    if [[ "$major" -gt 4 ]] || { [[ "$major" -eq 4 ]] && [[ "$minor" -ge 3 ]]; }; then
+        echo "Bash version $BASH_VERSION meets the minimum required version (4.3)."
+        can_use_wait_n="true"
+    else
+        echo "Bash version $BASH_VERSION is too old. Minimum required version is 4.3."
+        can_use_wait_n="false"
+    fi
+}
+# Create tmp dir
+setup_data() {
+    echo "TSV: " "$input_file"
+    echo "Output directory for GENOMIC: " "$output_dir"
+    echo "Preferred prefix: $prefix"
+    tmp_dir="$output_dir""tmp/"
+    tmp_names="$tmp_dir""/tmp_names"
+    mkdir -p "$tmp_dir"
+    if [[ -z ${exclude} ]]; then
+        exclude="$output_dir"exclusions.txt
+    fi
+    can_we_use_wait_n
+    check_api_key
+}
+
+update_dir_count() {
+    genomic_dir="${output_dir}GENOMIC${batch_number}/"
+    mkdir -p "$genomic_dir" 
+    if [[ $annotate = "true" ]]; then
+        gff_dir="${output_dir}GFF${batch_number}/"
+        mkdir -p "$gff_dir"
+    fi
+    echo "Created/Using directory: $genomic_dir"
+}
+
+while getopts ":h:p:i:o:a:b:e:" opt; do
     case "${opt}" in
     i)
         input_file="${OPTARG}"
@@ -89,7 +151,7 @@ while getopts ":h:p:i:o:a:b:" opt; do
             case $arg in
             --keep-zip-files=*)
                 long_flag_value="${arg#*=}"
-                keep_zip_files=true
+                mode="zip"
                 ;;
             --annotate=*)
                 long_flag_value="${arg#*=}"
@@ -98,7 +160,7 @@ while getopts ":h:p:i:o:a:b:" opt; do
             --convert-gzip-files=*)
                 long_flag_value="${arg#*=}"
 
-                convert_gzip_files=true
+                mode="gzip"
                 ;;
             *)
                 echo "Invalid option: -$OPTARG"
@@ -114,21 +176,10 @@ done
 
 
 # START OF SCRIPT
-# shellcheck source=utils/awk_programs.sh
-eval "$(cat "$utils_dir"awk_programs.sh)"
-
-# shellcheck source=utils/tsv_downloader.sh
-eval "$(cat "$utils_dir"tsv_downloader.sh)"
-
-# shellcheck source=utils/download_unzip.sh
-eval "$(cat "$utils_dir"download_unzip.sh)"
-
 setup_data
+"$utils_dir"exclude.sh "$output_dir" "$exclude" "$prefix" 
+"$utils_dir"awk_programs.sh "$input_file" "$tmp_names" "$prefix"
 
-delete_exclusions
-# can_we_use_wait_n is set
-# tmp_names is set
-# genomic_dir is set
 
 while read -r accession accession_name filename; do
     # Check if we have reached the batch size
@@ -137,8 +188,10 @@ while read -r accession accession_name filename; do
         batch_number=$((batch_number + 1))
         update_dir_count
     fi
+
     # Start download in the background
-    download_and_unzip &
+    "$utils_dir"download_unzip.sh "$accession" "$accession_name" "$filename" \
+    "$tmp_dir" "$genomic_dir" "$output_dir" "$gff_dir" "$mode" &
 
     # Update the file counter
     file_count=$((file_count + 1))

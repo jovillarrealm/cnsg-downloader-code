@@ -4,10 +4,24 @@ output_dir="./"
 prefix='both'
 date_format='%d-%m-%Y'
 today="$(date +$date_format)"
+
+check_api_key() {
+    if [[ -z ${api_key+x} ]]; then
+        if [ -z "$NCBI_API_KEY" ]; then
+            echo "WARNING: NCBI API key cannot be aquired from this environment"
+            echo "Please set the NCBI_API_KEY var"
+        else
+            api_key=$NCBI_API_KEY
+            echo "INFO: An NCBI API key can be aquired from this environment"
+        fi
+    fi
+}
+
 print_help() {
     echo ""
     echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p source-db] [-r true]"
     echo ""
+    check_api_key
     echo ""
     echo "Arguments:"
     echo "-i <taxon>    Can be a name or NCBI Taxonomy ID"
