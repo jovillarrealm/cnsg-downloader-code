@@ -89,10 +89,11 @@ process_directory() {
 
     dircount=$((dircount + 1))
 
-    plots_dir="$utils_dir"plots/ 
-    uv run --project "$plots_dir" "$plots_dir"plots-count-fasta.py "$stats_file" 
+    plots_dir="$utils_dir"plots/
+    uv run --project "$plots_dir" "$plots_dir"plots-count-fasta.py "$stats_file"
 
 }
+
 
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
@@ -193,7 +194,7 @@ echo
 echo "** STARTING SUMMARY DOWNLOAD **"
 start_time=$(date +%s)
 # If the summary already ran before, skip it
-download_file="$output_dir""$taxon""_""$today"".tsv"
+download_file="$output_dir""$taxon""_""$today""_latest.tsv"
 
 # shellcheck disable=SC2086
 if ! "$scripts_dir"summary_download.sh \

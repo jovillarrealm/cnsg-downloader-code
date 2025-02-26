@@ -47,6 +47,38 @@ if [[ $# -lt 2 ]]; then
     exit 1
 fi
 
+compare_name_and_rename() {
+    local variable_name="$download_file"
+
+    # Find files containing "latest" in the specified directory
+    local latest_file=$(find "$output_dir" -type f -name "*_latest*tsv" -print -quit)
+
+    if [[ -n "$latest_file" ]]; then
+        # Extract the base name of the variable and the file
+        local variable_base_name=$(basename "$variable_name")
+        local file_base_name=$(basename "$latest_file")
+
+        # Remove "latest" from the file's base name for comparison
+
+        # Compare the base names
+        if [[ "$variable_base_name" == "$latest_file" ]]; then
+            # Add your "continue" logic here
+            return 0 #success
+        else
+            # Rename the file to remove "latest"
+            local file_base_no_latest=$(echo "$file_base_name" | sed 's/_latest//g')
+            local new_file_name=$(dirname "$latest_file")/$file_base_no_latest
+            mv "$latest_file" "$new_file_name"
+            echo "Renamed '$latest_file' to '$new_file_name'."
+            return 1 #Renamed
+        fi
+    else
+        echo "No file containing 'latest' found. Continuing..."
+        # Add your "continue" logic here (when no latest file is found)
+        return 2 #No file found
+    fi
+}
+
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 utils_dir="$scripts_dir"utils/
@@ -108,7 +140,8 @@ mkdir -p "$output_dir" || {
     exit 1
 }
 
-download_file="$output_dir""$taxon""_""$(date +'%d-%m-%Y')"".tsv"
+download_file="$output_dir""$taxon""_""$(date +'%d-%m-%Y')""_latest.tsv"
+compare_name_and_rename 
 
 if [ "$prefix" = "all" ]; then
     source_db="all"
