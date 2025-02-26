@@ -219,7 +219,7 @@ echo
 echo "** STARTING DOWNLOADS **"
 start_time=$(date +%s)
 # shellcheck disable=SC2086
-if ! bash -x "${scripts_dir}tsv_datasets_downloader.sh" -i "$download_file" \
+if ! "${scripts_dir}tsv_datasets_downloader.sh" -i "$download_file" \
     -o "$output_dir" -p "$prefix" -b "$batch_size" \
     ${api_key_file:+-a \"$api_key_file\"} \
     $keep_zip_flag \

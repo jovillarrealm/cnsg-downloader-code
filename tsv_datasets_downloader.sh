@@ -150,15 +150,15 @@ while getopts ":h:p:i:o:a:b:e:" opt; do
         for arg in "$@"; do
             case $arg in
             --keep-zip-files=*)
-                long_flag_value="${arg#*=}"
+                _long_flag_value="${arg#*=}"
                 mode="zip"
                 ;;
             --annotate=*)
-                long_flag_value="${arg#*=}"
+                _long_flag_value="${arg#*=}"
                 annotate=true
                 ;;
             --convert-gzip-files=*)
-                long_flag_value="${arg#*=}"
+                _long_flag_value="${arg#*=}"
 
                 mode="gzip"
                 ;;
