@@ -61,7 +61,7 @@ compare_name_and_rename() {
         # Remove "latest" from the file's base name for comparison
 
         # Compare the base names
-        if [[ "$variable_base_name" == "$latest_file" ]]; then
+        if [[ "$variable_base_name" == "$file_base_name" ]]; then
             # Add your "continue" logic here
             return 0 #success
         else
@@ -170,7 +170,7 @@ else
             ${limit_size:+ --limit "$limit_size"} \
             ${reference:+ --reference} |
             "$utils_dir"dataformat tsv genome \
-                --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
+                --fields accession,organism-name,organism-infraspecific-strain,assmstats-total-sequence-len,assmstats-number-of-contigs,assmstats-contig-n50,assmstats-gc-count,assmstats-gc-percent >"$download_file"
 
     else
         echo "Summary for $taxon on $today already exists"

@@ -14,7 +14,6 @@
 
 batch_size=50001
 prefix="both"
-output_dir=./
 scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 utils_dir="$scripts_dir"utils/
@@ -40,13 +39,13 @@ check_api_key() {
 
 print_help() {
     echo ""
-    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix] [--keep-zip-files=true] [--annotate=true]"
+    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix] [--keep-zip-files=true] [--convert-gzip-files=true] [--annotate=true]"
     echo ""
     check_api_key
     echo ""
     echo "Arguments:"
     echo "-i            path to tsv file with datasets summary output"
-    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
+    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Defaulti is dirname of input file]"
     echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
     echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
     echo "              [Options: 'GCF 'GCA' 'all' 'both']"
@@ -56,7 +55,7 @@ print_help() {
     echo ""
     echo "--keep-zip-files=true  ensures downloaded genomes are not decompressed after download, also it renames the inner fna file (without recompressing it)"
     echo ""
-    echo "--convert-gzip-files  ensures downloaded genomes are not recompressed after download into a gz file"
+    echo "--convert-gzip-files=true  ensures downloaded genomes are not recompressed after download into a gz file"
     echo ""
     echo "--annotate=true   adds gff annotations"
     echo ""
@@ -95,6 +94,7 @@ can_we_use_wait_n() {
 }
 # Create tmp dir
 setup_data() {
+    : "${output_dir:=$(dirname "$input_file")/}"
     echo "TSV: " "$input_file"
     echo "Output directory for GENOMIC: " "$output_dir"
     echo "Preferred prefix: $prefix"

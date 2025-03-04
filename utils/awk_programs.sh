@@ -17,67 +17,21 @@
 : "${input_file:="$1"}"
 : "${tmp_names:="$2"}"
 : "${prefix:="$3"}"
-
+utils_dir="$(dirname "$0")"
+utils_dir="$(realpath "$utils_dir")"/
 process_filename() {
-    awk 'BEGIN { FS="\t"; OFS="\t" } {
-    # Remove version number of Assembly Accession, or $1
-    split($1, arr, ".")
-    var1 = arr[1]
-    # Remove GCA_ GCF_
-    split(var1, nodb, "_")
-    var4 = nodb[2]
-    # Take only first 2 words in Organism Name and replace spaces with '-'
-    if ($2 ~ /\[.*\]/) {
-        gsub(/[^a-zA-Z0-9 ]/, "", $2)
-        # If brackets are found, add "DUD" prefix
-        split($2, words, " ")
-        var2 = "DUD" "-" words[1] "-" words[2]
-    } else {
-        gsub(/[^a-zA-Z0-9 ]/, "", $2)
-        # Otherwise, extract the first two words normally
-        split($2, words, " ")
-        var2 = words[1] "-" words[2]
-    }
-    # Remove non-alphanumeric characters from $3 and replace spaces with '-'
-    gsub(/ /, "-", $3)
-    gsub(/[^a-zA-Z0-9\-]/, "", $3)
-    # Remove consecutive "-" in $3
-    gsub(/-+/, "-", $3)
-    var3 = $3
-    # Output to the following variables: accession accession_name filename
-    print $1,var1, var1"_"var2"_"var3, var4
+    awk -f "$utils_dir"process_filename.awk 
+}
+
+
+
+filter_none() {
+    awk -v code="$prefix" 'BEGIN { FS="\t"; OFS="\t" }
+    {
+        print $1 OFS $2 OFS $3
     }'
 }
 
-process_filename_redundant() {
-    awk 'BEGIN { FS="\t"; OFS="\t" } {
-    # Remove version number of Assembly Accession, or $1
-    split($1, arr, ".")
-    var1 = arr[1]
-    # Remove GCA_ GCF_
-    split(var1, nodb, "_")
-    var4 = nodb[2]
-    # Take only first 2 words in Organism Name y eso equivale a genero y especie? and replace spaces with '-'
-    gsub(/[^a-zA-Z0-9 ]/, "", $2)
-    if ($2 ~ /\[.*\]/) {
-        # If brackets are found, add "DUD" prefix
-        split($2, words, " ")
-        var2 = "DUD-" words[1] "-" words[2]
-    } else {
-        # Otherwise, extract the first two words normally
-        split($2, words, " ")
-        var2 = words[1] "-" words[2]
-    }
-    # Remove non-alphanumeric characters from $3 and replace spaces with '-'
-    gsub(/ /, "-", $3)
-    gsub(/[^a-zA-Z0-9\-]/, "", $3)
-    # Remove consecutive "-" in $3
-    gsub(/-+/, "-", $3)
-    var3 = $3
-    # Output to the following variables: accession accession_name filename
-    print $1,var1, var1"_"var2"_"var3
-    }'
-}
 
 keep_GCX() {
     awk -v code="$prefix" 'BEGIN { FS="\t"; OFS="\t" }
@@ -150,7 +104,7 @@ process_tsv() {
     # Process the data based on the prefix
     case "$prefix" in
     "all")
-        process_filename_redundant <"$pipe" >"$tmp_names"
+        process_filename <"$pipe" | filter_none >"$tmp_names"
         ;;
     "GCA")
         process_filename <"$pipe" | keep_GCX >"$tmp_names"
