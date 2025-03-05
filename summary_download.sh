@@ -17,30 +17,76 @@ check_api_key() {
     fi
 }
 
-print_help() {
-    echo ""
-    echo "Usage: $0 -i <taxon> [-o <directorio_output>] [-a path/to/api/key/file] [-p source-db] [-r true]"
-    echo ""
-    check_api_key
-    echo ""
-    echo "Arguments:"
-    echo "-i <taxon>    Can be a name or NCBI Taxonomy ID"
-    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Default: $output_dir]"
-    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
-    echo "-p            chooses between GenBank and RefSeq [Default: '$prefix']"
-    echo "              [Options: 'GCF 'GCA' 'all' 'both']"
-    echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
-    echo "-r            chooses to download only reference genomes"
-    echo "-l <Number>   limit the summary to the first <Number> of genomes"
-    echo ""
-    echo "-g            gene symbol to search with the taxon. The taxon must be at least at species level, or below."
-    echo ""
-    echo ""
-    echo "This script assumes 'datasets' and 'dataformat' are in PATH"
-    echo ""
-    echo ""
-
+check_api_key() {
+    if [[ -z ${api_key+x} ]]; then
+        if [ -z "$NCBI_API_KEY" ]; then
+            echo "WARNING: NCBI API key cannot be acquired from this environment."
+            echo "Please set the NCBI_API_KEY environment variable."
+        else
+            api_key=$NCBI_API_KEY
+            echo "INFO: An NCBI API key can be acquired from the NCBI_API_KEY environment variable."
+        fi
+    fi
 }
+
+print_help() {
+    local script_name=$(basename "$0")
+
+    echo ""
+    echo "Usage: $script_name [OPTIONS] -i TAXON"
+    echo ""
+    echo "Description:"
+    echo "  This script downloads a tsv genomic data summary from NCBI based on a taxon name or ID."
+    echo "  It allows filtering by source database, and reference genomes."
+    echo "  Requires 'datasets' and 'dataformat' to be in your PATH."
+    echo ""
+    echo "Required Arguments:"
+    echo "  -i, TAXON"
+    echo "      Taxon name or NCBI Taxonomy ID to search for."
+    echo ""
+    echo "Optional Arguments:"
+    echo "  -o, OUTPUT_DIR"
+    echo "      Path to the directory where GENOMIC*/ folders will be created."
+    echo "      (Default: $output_dir)"
+    echo ""
+    echo "  -a, API_KEY_FILE"
+    echo "      Path to a file containing your NCBI API key. If provided, enhances performance."
+    echo "      You can obtain an API key from your NCBI account."
+    echo ""
+    echo "  -p, SOURCE_DB"
+    echo "      Chooses between GenBank and RefSeq as the source database."
+    echo "      (Default: '$prefix')"
+    echo "      Options: GCF (RefSeq), GCA (GenBank), all (includes duplicates), both (prefers RefSeq)"
+    echo ""
+    echo "  -r, true"
+    echo "      Downloads only reference genomes."
+    echo ""
+    echo "  -l, NUMBER"
+    echo "      Limits the summary to the first NUMBER of genomes."
+    echo ""
+    echo "  -h, "
+    echo "      Displays this help message and exits."
+    echo ""
+    echo "Dependencies:"
+    echo "  datasets, dataformat"
+    echo ""
+    check_api_key # run the function to display api key info.
+    echo ""
+    echo "NCBI API Key Information:"
+    if [[ -z ${api_key+x} ]]; then
+        if [ -z "$NCBI_API_KEY" ]; then
+            echo "  WARNING: NCBI API key cannot be acquired from this environment."
+            echo "  Please set the NCBI_API_KEY environment variable or use the -a option."
+        else
+            echo "  INFO: An NCBI API key can be acquired from the NCBI_API_KEY environment variable."
+        fi
+    else
+        echo "  INFO: NCBI API key provided via -a option."
+    fi
+    echo ""
+    "$utils_dir"clis_download.sh
+}
+
 
 if [[ $# -lt 2 ]]; then
     print_help

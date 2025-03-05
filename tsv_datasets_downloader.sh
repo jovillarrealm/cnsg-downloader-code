@@ -37,32 +37,71 @@ check_api_key() {
     fi
 }
 
+
 print_help() {
+    local script_name=$(basename "$0")
+
     echo ""
-    echo "Usage: $0 -i tsv/input/file/path [-o path/for/dir/GENOMIC] [-a path/to/api/key/file] [-p preferred prefix] [--keep-zip-files=true] [--convert-gzip-files=true] [--annotate=true]"
+    echo "Usage: $script_name [OPTIONS] -i INPUT_FILE"
     echo ""
-    check_api_key
+    echo "Description:"
+    echo "  This script downloads genomic data from NCBI based on a summary TSV file."
+    echo "  It handles deduplication, file format conversions, and optional annotation."
+    echo "  Requires 'datasets' and 'dataformat' to be in your PATH."
     echo ""
-    echo "Arguments:"
-    echo "-i            path to tsv file with datasets summary output"
-    echo "-o            rel path to folder where GENOMIC*/ folders will be created [Defaulti is dirname of input file]"
-    echo "-a            path to file containing an NCBI API key. If you have a ncbi account, you can generate one."
-    echo "-p            tsv_downloader performs deduplication of redundant genomes between GenBank and RefSeq [Default: '$prefix']"
-    echo "              [Options: 'GCF 'GCA' 'all' 'both']"
-    echo "-b            batch size of each GENOMIC folder because even 'ls' starts to fail with directories with too many files [Default: $batch_size]"
+    echo "Required Arguments:"
+    echo "  -i, INPUT_FILE"
+    echo "      Path to the TSV file containing dataset summaries."
     echo ""
-    echo "'GCA' (GenBank), 'GCF' (RefSeq), 'all' (contains duplication), 'both' (prefers RefSeq genomes over GenBank)"
+    echo "Optional Arguments:"
+    echo "  -o, OUTPUT_DIR"
+    echo "      Path to the directory where GENOMIC*/ folders will be created."
+    echo "      (Default: directory of the input file)"
     echo ""
-    echo "--keep-zip-files=true  ensures downloaded genomes are not decompressed after download, also it renames the inner fna file (without recompressing it)"
+    echo "  -a, API_KEY_FILE"
+    echo "      Path to a file containing your NCBI API key. If provided, increases processing speed."
+    echo "      You can obtain an API key from your NCBI account."
     echo ""
-    echo "--convert-gzip-files=true  ensures downloaded genomes are not recompressed after download into a gz file"
+    echo "  -p, PREFIX"
+    echo "      Preferred prefix for deduplication: GCF (RefSeq), GCA (GenBank), all (no deduplication),"
+    echo "      or both (prefers RefSeq). (Default: '$prefix')"
+    echo "      Options: GCF, GCA, all, both"
     echo ""
-    echo "--annotate=true   adds gff annotations"
+    echo "  -b, BATCH_SIZE"
+    echo "      Batch size for each GENOMIC folder to avoid issues with large directories. (Default: $batch_size)"
     echo ""
-    echo "This script assumes 'datasets' and 'dataformat' are in PATH"
-    echo "It depends on mv, unzip, awk, xargs, datasets, dataformat, zipnote"
+    echo "  --keep-zip-files=true"
+    echo "      Keeps downloaded genomes as zip files instead of decompressing them."
+    echo "      Renames the inner fna file without recompression."
     echo ""
+    echo "  --convert-gzip-files=true"
+    echo "      Keeps downloaded genomes as gzip files instead of recompressing them."
     echo ""
+    echo "  --annotate=true"
+    echo "      Adds GFF annotations to the downloaded genomes."
+    echo ""
+    echo "  -h"
+    echo "      Displays this help message and exits."
+    echo ""
+    echo "Dependencies:"
+    echo "  mv, unzip, awk, xargs, datasets, dataformat, zipnote"
+    echo ""
+
+    check_api_key # run the function to display api key info.
+    echo ""
+    echo "NCBI API Key Information:"
+    if [[ -z ${api_key+x} ]]; then
+        if [ -z "$NCBI_API_KEY" ]; then
+            echo "  WARNING: NCBI API key cannot be acquired from this environment."
+            echo "  Please set the NCBI_API_KEY environment variable or use the -a option."
+            echo "  Using default lower process number."
+        else
+            echo "  INFO: An NCBI API key can be acquired from the NCBI_API_KEY environment variable."
+            echo "  Using higher process number."
+        fi
+    else
+        echo "  INFO: NCBI API key provided via -a option. Using higher process number."
+    fi
     echo ""
 }
 
