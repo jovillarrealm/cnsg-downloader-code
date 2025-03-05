@@ -22,7 +22,7 @@ print_help() {
     echo ""
 }
 
-if [[ $# -lt 2 ]]; then
+if [[ $# -lt 1 ]]; then
     print_help
     exit 1
 fi
