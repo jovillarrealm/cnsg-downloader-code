@@ -4,6 +4,9 @@ output_dir="./"
 prefix='both'
 date_format='%d-%m-%Y'
 today="$(date +$date_format)"
+scripts_dir="$(dirname "$0")"
+scripts_dir="$(realpath "$scripts_dir")"/
+utils_dir="$scripts_dir"utils/
 
 check_api_key() {
     if [[ -z ${api_key+x} ]]; then
@@ -125,9 +128,7 @@ compare_name_and_rename() {
     fi
 }
 
-scripts_dir="$(dirname "$0")"
-scripts_dir="$(realpath "$scripts_dir")"/
-utils_dir="$scripts_dir"utils/
+
 download_genes=false
 while getopts ":h:i:o:a:p:g:e:l:r:" opt; do
     case "${opt}" in

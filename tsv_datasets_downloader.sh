@@ -103,6 +103,8 @@ print_help() {
         echo "  INFO: NCBI API key provided via -a option. Using higher process number."
     fi
     echo ""
+    "$utils_dir"clis_download.sh
+
 }
 
 if [[ $# -lt 2 ]]; then
