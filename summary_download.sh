@@ -8,17 +8,6 @@ scripts_dir="$(dirname "$0")"
 scripts_dir="$(realpath "$scripts_dir")"/
 utils_dir="$scripts_dir"utils/
 
-check_api_key() {
-    if [[ -z ${api_key+x} ]]; then
-        if [ -z "$NCBI_API_KEY" ]; then
-            echo "WARNING: NCBI API key cannot be aquired from this environment"
-            echo "Please set the NCBI_API_KEY var"
-        else
-            api_key=$NCBI_API_KEY
-            echo "INFO: An NCBI API key can be aquired from this environment"
-        fi
-    fi
-}
 
 check_api_key() {
     if [[ -z ${api_key+x} ]]; then
@@ -33,7 +22,8 @@ check_api_key() {
 }
 
 print_help() {
-    local script_name=$(basename "$0")
+    local script_name
+    script_name=$(basename "$0")
 
     echo ""
     echo "Usage: $script_name [OPTIONS] -i TAXON"
@@ -100,12 +90,15 @@ compare_name_and_rename() {
     local variable_name="$download_file"
 
     # Find files containing "latest" in the specified directory
-    local latest_file=$(find "$output_dir" -type f -name "*_latest*tsv" -print -quit)
+    local latest_file
+    latest_file=$(find "$output_dir" -type f -name "*_latest*tsv" -print -quit)
 
     if [[ -n "$latest_file" ]]; then
         # Extract the base name of the variable and the file
-        local variable_base_name=$(basename "$variable_name")
-        local file_base_name=$(basename "$latest_file")
+        local variable_base_name
+        variable_base_name=$(basename "$variable_name")
+        local file_base_name
+        file_base_name=$(basename "$latest_file")
 
         # Remove "latest" from the file's base name for comparison
 
@@ -115,8 +108,10 @@ compare_name_and_rename() {
             return 0 #success
         else
             # Rename the file to remove "latest"
-            local file_base_no_latest=$(echo "$file_base_name" | sed 's/_latest//g')
-            local new_file_name=$(dirname "$latest_file")/$file_base_no_latest
+            local file_base_no_latest
+            file_base_no_latest=$(echo "$file_base_name" | sed 's/_latest//g')
+            local new_file_name
+            new_file_name=$(dirname "$latest_file")/$file_base_no_latest
             mv "$latest_file" "$new_file_name"
             echo "Renamed '$latest_file' to '$new_file_name'."
             return 1 #Renamed

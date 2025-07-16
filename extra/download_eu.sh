@@ -14,11 +14,15 @@
 
 
 print_help() {
-    local script_name=$(basename "$0")
+    local script_name
+    script_name=$(basename "$0")
 
     echo ""
-    echo "Usage: $script_name output_path [limit]"
+    echo "Usage: $script_name output_path source [limit]"
     echo "This script downloads all the eubacteria genomes. (Taxonomy ID: 2) For the entire superkingdom."
+    echo "source can be GCA or GCF. [Default: GCA]"
+    echo "If you want to limit the number of genomes downloaded, you can use the optional limit argument."
+    echo "Example: $script_name ./eu GCA 100"
     echo ""
 }
 
@@ -27,6 +31,7 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 : "${1:? set an  output path like eu}"
+
 
 date_format='%d-%m-%Y'
 today="$(date +$date_format)"
@@ -37,13 +42,12 @@ out_dir="$(realpath "$1")"/
 scripts_dir="$(realpath "$0")"
 scripts_dir="$(dirname "$scripts_dir")"
 scripts_dir="$(dirname "$scripts_dir")"/
-
 utils_dir="$scripts_dir"utils/
 
 plots_dir="$utils_dir"plots/
 
 
-"$scripts_dir"summary_download.sh -i eubacteria -o "$out_dir" -p GCA ${2:+-l $2}
+"$scripts_dir"summary_download.sh -i eubacteria -o "$out_dir" -p "${2:-GCA}" ${3:+-l $3}
 
 tsv_file=$(find "$out_dir" -maxdepth 1 -name "*latest*tsv") 
 uv run --project "$scripts_dir"utils/plots/ "$scripts_dir"utils/plots/group.py "$tsv_file" "$out_dir"

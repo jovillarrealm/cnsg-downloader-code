@@ -33,13 +33,15 @@ should_renew_file() {
 }
 
 if ! count-fasta-rs -V 1>/dev/null 2>&1; then
-    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jovillarrealm/count-fasta-rs/releases/download/v0.6.4/count-fasta-rs-installer.sh | sh
+    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jovillarrealm/count-fasta-rs/releases/download/v0.6.6/count-fasta-rs-installer.sh | sh
 fi
 
 
 if ! uv -V 1>/dev/null 2>&1; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
+
+
 
 
 

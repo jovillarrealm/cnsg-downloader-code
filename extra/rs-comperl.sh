@@ -12,6 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+print_help() {
+    echo ""
+    echo "Usage: $0 fasta_file"
+    echo ""
+    echo "Arguments:"
+    echo "fasta_file is the path to a FASTA file to be processed by the perl and rust implementations of count-fasta."
+    echo ""
+}
+
+if [[ $# -lt 1 ]]; then
+    print_help
+    exit 1
+fi
+
+
 out_dir=./rs-comperl-output/
 mkdir -p $out_dir
 

@@ -12,63 +12,24 @@
 
 import polars as pl
 import re
-import sys
 import os
 
-_, input_f, output_d = sys.argv
-output_d = os.path.abspath(output_d)
-input_f = os.path.abspath(input_f)
+
+import argparse
 
 
-def extract_date_from_filename(filename):
-    """
-    Extracts the date from a filename in the format "eubacteria_26-02-2025_latest.tsv"
-    or "eubacteria_26-02-2025.tsv".
-
-    Args:
-      filename: The filename string.
-
-    Returns:
-      The extracted date string in the format "DD/MM/YYYY" or None if no date is found.
-    """
-    match = re.search(r"\d{2}-\d{2}-\d{4}", filename)
-    if match:
-        date_str = match.group(0)
-        return date_str
+def dir_path(path):
+    if os.path.isdir(path):
+        return path
     else:
-        return None
+        raise argparse.ArgumentTypeError(f"readable_dir:{path} is not a valid path")
 
 
-def extract_genus(s: str) -> str:
-    duds = [
-        "aff.",
-        "cf.",
-    ]
-    dud = False
-    for dud in duds:
-        if dud in s:
-            s = s.replace(dud, "")
-            dud = True
-    if "Candidatus " in s:
-        s = s.replace("Candidatus ", "")
-    s = re.sub(r"[^a-zA-Z0-9\s]", "", s)
-
-    words = s.split()
-    if len(words) >= 1:
-        return words[0]
+def afile_path(path):
+    if os.path.isfile(path):
+        return path
     else:
-        return ""
-
-
-date = extract_date_from_filename(input_f)
-prefix = "DUD"
-df = pl.read_csv(input_f, separator="\t")
-
-df = df.filter(~pl.col("Organism Name").str.contains("Salmonella"))
-
-result = df.with_columns(
-    genus=pl.col("Organism Name").map_elements(extract_genus, return_dtype=pl.Utf8()),
-)
+        raise argparse.ArgumentTypeError(f"readable_dir:{path} is not a valid path")
 
 
 def process_and_save_group(group_df: pl.DataFrame):
@@ -96,9 +57,66 @@ def process_and_save_group(group_df: pl.DataFrame):
     return group_df
 
 
-print(
-    f"Beginning to separate {result.n_unique('genus')} genera, this will take a while"
+def extract_date_from_filename(filename):
+    """
+    Extracts the date from a filename in the format "eubacteria_26-02-2025_latest.tsv"
+    or "eubacteria_26-02-2025.tsv".
+
+    Args:
+      filename: The filename string.
+
+    Returns:
+      The extracted date string in the format "DD/MM/YYYY" or None if no date is found.
+    """
+    match = re.search(r"\d{2}-\d{2}-\d{4}", filename)
+    if match:
+        date_str = match.group(0)
+        return date_str
+    else:
+        return None
+    
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "input_file",
+    type=afile_path,
+    help="The input file to process, in the format 'eubacteria_26-02-2025_latest.tsv' or 'eubacteria_26-02-2025.tsv'.",
 )
-groups = result.group_by("genus")
+parser.add_argument(
+    "output_directory",
+    type=dir_path,
+    help="The output directory where the processed files will be saved.",
+)
+#parser.add_argument("--dryrun", help="preview the output without creating files",
+#                    action="store_true")
+args = parser.parse_args()
+
+
+output_d = os.path.abspath(args.output_directory)
+input_f = os.path.abspath(args.input_file)
+date = extract_date_from_filename(input_f)
+
+df:pl.LazyFrame = pl.scan_csv(input_f, separator='\t')
+
+df = df.filter(~pl.col("Organism Name").str.contains("Salmonella"))
+
+
+# Create a new table with the new column using .mutate()
+df: pl.LazyFrame = df.with_columns(pl.col("Organism Name")
+    .str.replace_all("aff.", "", literal=True)
+    .str.replace_all("cf.", "", literal=True)
+    .str.replace_all("Candidatus ", "", literal=True)
+    .str.replace_all("candidate division ", "", literal=True)
+    .str.replace_all("[^a-zA-Z0-9\\s]", "", literal=False) # Note: double backslash for regex in Python string
+    .str.extract("^\\s*(\\S+)", 1)
+    .alias("genus")
+)
+
+
+
+df2: pl.DataFrame = df.collect()
+print(
+    f"Beginning to separate {df2.n_unique('genus')} genera, this will take a while..."
+)
+groups = df2.group_by("genus")
 groups.map_groups(process_and_save_group)
-print(result)
+print("Finished separating genera, files saved in:", output_d)

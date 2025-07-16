@@ -5,6 +5,10 @@ prefix="both"
 output_dir="./"
 batch_size=50000
 
+scripts_dir="$(dirname "$0")"
+scripts_dir="$(realpath "$scripts_dir")"/
+utils_dir="$scripts_dir"utils/
+
 check_api_key() {
     if [[ -z ${api_key+x} ]]; then
         if [ -z "$NCBI_API_KEY" ]; then
@@ -18,7 +22,8 @@ check_api_key() {
 }
 
 print_help() {
-    local script_name=$(basename "$0")
+    local script_name
+    script_name=$(basename "$0")
 
     echo ""
     echo "Usage: $script_name [OPTIONS] -i TAXON"
@@ -95,7 +100,7 @@ print_help() {
         echo "  INFO: NCBI API key provided via -a option."
     fi
     echo ""
-    "$utils_dir"clis_download.sh
+    "$utils_dir"clis_download.sh &
 }
 
 if [[ $# -lt 2 ]]; then
@@ -134,9 +139,7 @@ process_directory() {
 }
 
 
-scripts_dir="$(dirname "$0")"
-scripts_dir="$(realpath "$scripts_dir")"/
-utils_dir="$scripts_dir"utils/
+
 annotate=
 while getopts ":h:i:o:a:p:e:b:l:r:" opt; do
     case "${opt}" in

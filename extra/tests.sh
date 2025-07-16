@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+echo "This script is used to test the genome download and count-fasta-rs functionality."
+
 scripts_dir="$(dirname "$0")"
 extra_scripts_dir="$(realpath "$scripts_dir")"
 scripts_dir="${extra_scripts_dir%/*}"/

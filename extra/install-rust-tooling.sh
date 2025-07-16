@@ -21,7 +21,6 @@ source "$HOME/.cargo/env.fish"
 
 cargo install --locked zellij
 cargo install fd-find
-cargo install du-dust
 cargo install ripgrep
 cargo install --locked yazi-fm yazi-cli
 

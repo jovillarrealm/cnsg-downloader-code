@@ -39,7 +39,8 @@ check_api_key() {
 
 
 print_help() {
-    local script_name=$(basename "$0")
+    local script_name
+    script_name=$(basename "$0")
 
     echo ""
     echo "Usage: $script_name [OPTIONS] -i INPUT_FILE"

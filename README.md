@@ -3,6 +3,8 @@
 download scripts for [NCBI Datasets command-line tools](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/).
 
 
+
+
 ## Installation
 
 First, git clone this repo and let it have execution permissions.
@@ -20,9 +22,11 @@ cnsg-downloader-code/utils/clis_download.sh
 ```
 
 Optionally test its behaviour by downloading genomes and annotations for Aphelenchoides. Running `genome_download.sh` will also call that same script.
+
 ```
 cnsg-downloader-code/genome_download.sh -i Aphelenchoides -o ./Aphelenchoides --annotate=true
 ```
+
 Pls attempt
 ![attempt](https://github.com/user-attachments/assets/17bf7b0d-09ae-48eb-90e1-efb730a43385)
 
@@ -52,6 +56,8 @@ Output for `./tsv_datasets_downloader.sh`
 ## Hierarchy
 ```mermaid
   graph TD;
+      download_eu.sh-->genome_download.sh;
+      download_eu.sh-->summary_download.sh;
       genome_download.sh-->summary_download.sh;
       genome_download.sh-->tsv_datasets_downloader.sh;
       genome_download.sh-->utils;
