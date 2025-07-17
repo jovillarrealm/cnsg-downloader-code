@@ -28,6 +28,7 @@ utils_dir="$(realpath "$utils_dir")"/
 : "${output_dir:="$6"}"
 : "${gff_dir:="$7"}"
 : "${mode:="$8"}"
+
 download_and_unzip() {
     # redundant shadowing to kind of tell the input of this function
     local accession="$accession"
@@ -46,6 +47,8 @@ download_and_unzip() {
         filename="$filename.zip"
     elif [[ $mode = "gzip" ]]; then
         filename="$filename$g_ext.gz"
+    elif [[ $mode = "naf" ]]; then
+        filename="$filename$g_ext.naf"
     elif [[ $mode = "fasta" ]]; then
         filename="$filename$g_ext"
     else
@@ -92,7 +95,7 @@ download_and_unzip() {
             rm "$complete_zip_path"
             return 1
         fi
-
+        # Rename inner fasta
         printf "@ %s\n@=%s" "$genomic_file" "$filename_ext"$g_ext | zipnote -w "$complete_zip_path"
         if [[ $annotate = "true" ]]; then
             # Find the .gff file in the archive using unzip -l
@@ -132,6 +135,29 @@ download_and_unzip() {
         fi
 
         if ! mv -n "$filepath""$filename_ext"$g_ext.gz "$downloaded_path"; then
+            echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$downloaded_path"
+        fi
+    elif [[ $mode = "naf" ]]; then
+        # Find the genomic file in the archive using unzip -l
+        genomic_file=$(unzip -l "$complete_zip_path" | awk '{print $4}' | grep '\.fna$')
+
+        # Check if a genomic file was found
+        if [[ -z "$genomic_file" ]]; then
+            echo "**** FAILED TO DOWNLOAD $accession , en  $complete_zip_path"
+            rm "$complete_zip_path"
+            return 1
+        fi
+
+        printf "@ %s\n@=%s" "$genomic_file" "$filename_ext"$g_ext | zipnote -w "$complete_zip_path"
+        unzip -oq "$complete_zip_path" "*$g_ext" -d "$filepath"
+
+        # ennaf the genome
+        if ! ennaf "$filepath""$filename_ext"$g_ext --temp-dir "$filepath"; then
+            echo "**** ERROR TO ennaf contents of : " "$genomic_dir""$filename"
+            rm "$filepath""$filename_ext"$g_ext
+        fi
+
+        if ! mv -n "$filepath""$filename_ext"$g_ext.naf "$downloaded_path"; then
             echo "**** ERROR TO MOVE contents of : " "$filepath" "  in  " "$downloaded_path"
         fi
 

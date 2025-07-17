@@ -13,11 +13,13 @@ check_api_key() {
     if [[ -z ${api_key+x} ]]; then
         if [ -z "$NCBI_API_KEY" ]; then
             echo "WARNING: NCBI API key cannot be aquired from this environment"
-            echo "Please set the NCBI_API_KEY var"
+            echo "Please set the NCBI_API_KEY environment variable"
         else
             api_key=$NCBI_API_KEY
             echo "INFO: An NCBI API key can be aquired from this environment"
         fi
+    else
+            echo "INFO: An NCBI API key was found."
     fi
 }
 
@@ -31,7 +33,7 @@ print_help() {
     echo "Description:"
     echo "  This script downloads genomic data from NCBI based on a taxon name or ID."
     echo "  It handles deduplication, file format conversions, optional annotation, and more."
-    echo "  Requires 'unzip', 'summary_download', 'tsv_downloader.sh', and 'clis_download.sh' to be present."
+    echo "  "
     echo ""
     echo "Required Arguments:"
     echo "  -i, TAXON"
@@ -68,7 +70,7 @@ print_help() {
     echo "      Renames the inner fna file without recompression."
     echo ""
     echo "  --convert-gzip-files=true"
-    echo "      Keeps downloaded genomes as gzip files instead of recompressing them."
+    echo "      Converts downloaded genomes to gzip files."
     echo ""
     echo "  --annotate=true"
     echo "      Adds GFF annotations to a separate directory."
@@ -81,24 +83,14 @@ print_help() {
     echo "  $script_name -i 90723 -o ./Aphelenchoides -a ncbi_api_key.txt -p 'both'"
     echo ""
     echo "Dependencies:"
-    echo "  unzip, summary_download, tsv_downloader.sh, clis_download.sh"
+    echo "Requires 'unzip, ennaf, unnaf, gzip', 'summary_download.sh', 'tsv_downloader.sh', and 'clis_download.sh' to be present."
     echo ""
     echo "Date Format: $date_format"
     echo ""
 
     check_api_key # run the function to display api key info.
     echo ""
-    echo "NCBI API Key Information:"
-    if [[ -z ${api_key+x} ]]; then
-        if [ -z "$NCBI_API_KEY" ]; then
-            echo "  WARNING: NCBI API key cannot be acquired from this environment."
-            echo "  Please set the NCBI_API_KEY environment variable or use the -a option."
-        else
-            echo "  INFO: An NCBI API key can be acquired from the NCBI_API_KEY environment variable."
-        fi
-    else
-        echo "  INFO: NCBI API key provided via -a option."
-    fi
+
     echo ""
     "$utils_dir"clis_download.sh &
 }
@@ -208,6 +200,11 @@ while getopts ":h:i:o:a:p:e:b:l:r:" opt; do
 
                 convert_gzip_flag="${long_flag_value:+--convert-gzip-files=true}"
                 ;;
+            --convert-naf=*)
+                long_flag_value="${arg#*=}"
+
+                convert_naf_flag="${long_flag_value:+--convert-naf=true}"
+                ;;
             --annotate=*)
                 long_flag_value="${arg#*=}"
                 annotate=true
@@ -267,6 +264,7 @@ if ! "${scripts_dir}tsv_datasets_downloader.sh" -i "$download_file" \
     ${api_key_file:+-a \"$api_key_file\"} \
     $keep_zip_flag \
     $convert_gzip_flag \
+    $convert_naf_flag \
     ${annotate:+--annotate=true}; then
     exit 1
 fi

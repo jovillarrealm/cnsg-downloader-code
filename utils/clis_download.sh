@@ -41,7 +41,16 @@ if ! uv -V 1>/dev/null 2>&1; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
-
+if ! ennaf -V 1>/dev/null 2>&1; then
+    echo "Attempting to install naf from bioconda: "
+    if ! conda install naf -y; then 
+        echo "ERROR: instalation of ennaf failed. If bioconda is not set up run:"
+        echo "conda config --add channels bioconda"
+        echo "conda config --add channels conda-forge"
+        echo "conda config --set channel_priority strict"
+        echo ""
+    fi
+fi
 
 
 

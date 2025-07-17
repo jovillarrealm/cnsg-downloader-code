@@ -32,6 +32,7 @@ check_api_key() {
     : "${api_key:=$NCBI_API_KEY}"
     if [[ -z ${api_key+x} ]]; then
         num_process=3
+        echo "WARNING: No API KEY found. Using 3 concurrent downloads"
     else
         num_process=10
     fi
@@ -76,7 +77,10 @@ print_help() {
     echo "      Renames the inner fna file without recompression."
     echo ""
     echo "  --convert-gzip-files=true"
-    echo "      Keeps downloaded genomes as gzip files instead of recompressing them."
+    echo "      Converts downloaded genomes using gzip."
+    echo ""
+    echo "  --convert-naf=true"
+    echo "      Converts files using ennaf."
     echo ""
     echo "  --annotate=true"
     echo "      Adds GFF annotations to the downloaded genomes."
@@ -85,7 +89,7 @@ print_help() {
     echo "      Displays this help message and exits."
     echo ""
     echo "Dependencies:"
-    echo "  mv, unzip, awk, xargs, datasets, dataformat, zipnote"
+    echo "  mv, unzip, awk, xargs, datasets, dataformat, zipnote, ennaf"
     echo ""
 
     check_api_key # run the function to display api key info.
@@ -203,6 +207,11 @@ while getopts ":h:p:i:o:a:b:e:" opt; do
                 _long_flag_value="${arg#*=}"
 
                 mode="gzip"
+                ;;
+            --convert-naf=*)
+                _long_flag_value="${arg#*=}"
+
+                mode="naf"
                 ;;
             *)
                 echo "Invalid option: -$OPTARG"

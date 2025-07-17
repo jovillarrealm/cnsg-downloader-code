@@ -169,9 +169,7 @@ echo "TSV: ""$taxon"
 echo "Download: ""$output_dir"
 
 : "${api_key:=$NCBI_API_KEY}"
-if [[ -z ${api_key} ]]; then
-    echo "NO API KEY FOUND: using 3 concurrent downloads"
-fi
+
 if [[ -z ${exclude} ]]; then
     exclude="$output_dir"exclusions.txt
 fi
